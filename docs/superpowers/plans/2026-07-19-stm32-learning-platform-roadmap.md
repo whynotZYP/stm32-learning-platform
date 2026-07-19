@@ -33,7 +33,7 @@
    - Gate: unit, component, and core Playwright journeys pass.
 3. `2026-07-19-stm32-curriculum-firmware.md`
    - Produces detailed 24-week content, all rubrics and labs, CubeMX projects, and firmware build matrix.
-   - Gate: all 46 source IDs are covered by the versioned source API inventory, every unique non-empty SPL symbol maps exactly once, every lesson/lab has all three `detectionChecks` modes, and every required peripheral has concept, lab, assessment, and fault task.
+   - Gate: all 46 source IDs are covered by the versioned source API inventory, every unique non-empty SPL symbol maps exactly once, every lesson/lab has all three `detectionChecks` modes, every one of the exact 12 core hardware tags has device/physical semi-automatic and manual/physical paths, and every required peripheral has concept, lab, assessment, and fault task.
 4. `2026-07-19-stm32-device-console.md`
    - Produces the JSON Lines protocol, simulator, Web Serial console, evidence integration, and device-test firmware.
    - Gate: simulator fault matrix and firmware build pass; real hardware remains explicitly pending until connected.
@@ -51,12 +51,20 @@ export type EvidenceStatus = 'auto-pass' | 'manual-confirmed' | 'pending' | 'fai
 export type MasteryBand = 'mastered' | 'review' | 'remediate' | 'relearn';
 
 export type DetectionMode = 'automatic' | 'semi-automatic' | 'manual';
+export type DetectionEvidenceSource = 'simulator' | 'device' | 'manual';
+export const CORE_HARDWARE_TAG_IDS = [
+  'gpio.output-mode', 'exti.event-flow', 'tim.timebase', 'adc.sampling',
+  'dma.transfer', 'usart.physical-frame', 'i2c.protocol', 'spi.protocol',
+  'rtc.time', 'pwr.low-power', 'wdg.recovery', 'flash.persistence',
+] as const;
 export interface DetectionCheck {
   mode: DetectionMode;
   action: string;
   expectedEvidence: string;
   limitation: string;
   applicable: boolean;
+  evidenceSource: DetectionEvidenceSource;
+  physicalHardware: boolean;
   reason?: string;
 }
 
@@ -101,7 +109,7 @@ export interface DeviceTransport {
 | Offline site, Pages, learner docs | Release Tasks 1–3 | offline E2E, workflows, documentation contracts |
 | Requirement audit, package, physical verification | Release Tasks 4–6 | evidence matrix, ZIP smoke test, hardware JSON |
 
-The Foundation shared `detectionChecks` contract is the sole automatic/semi-automatic/manual model: Curriculum validates all three modes and the inventory-backed SPL map, Device Console consumes it for device checks, and Release audits it without redefining it.
+The Foundation shared `detectionChecks` contract is the sole automatic/semi-automatic/manual model: it also defines `simulator`/`device`/`manual` evidence sources, `physicalHardware`, and the exact 12 core hardware tags. Curriculum validates all three modes and the inventory-backed SPL map, Device Console consumes it for device checks, and Release audits it without redefining it; a simulator check can never be physical hardware evidence.
 
 Every design section has one owning task and one stated evidence source; later plans may consume that result but must not redefine it.
 

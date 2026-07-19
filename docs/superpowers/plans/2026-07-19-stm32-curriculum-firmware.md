@@ -14,7 +14,7 @@
 - Every one of the 46 source IDs is present in `curriculum/course-map.json` and referenced by at least one week.
 - `curriculum/source-api-inventory.json` is the versioned authoritative source inventory: it contains each of `05`, `06-1`, `06-2`, and `07` through `49` exactly once, with provenance and an explicit SPL-symbol array.
 - Every core topic has a plain-language explanation, CubeMX rationale, minimum lab, debug observation, injected fault, explain-back prompt, assessment, and note task.
-- Every lesson and lab declares one `automatic`, one `semi-automatic`, and one `manual` shared `detectionChecks` record; a mode that does not apply states `applicable: false` and a non-empty reason. Core hardware topics retain at least one device/semi-automatic path and one manual path; simulator output never proves physical hardware behavior.
+- Every lesson and lab declares one `automatic`, one `semi-automatic`, and one `manual` shared `detectionChecks` record; a mode that does not apply states `applicable: false` and a non-empty reason. For the foundation plan's exact 12 core hardware tags, validation requires an applicable `semi-automatic` check with `evidenceSource: 'device'` and `physicalHardware: true`, plus an applicable `manual` check with `evidenceSource: 'manual'` and `physicalHardware: true`; `evidenceSource: 'simulator'` never proves physical hardware behavior.
 - HAL is the runnable mainline; each peripheral week includes at least one register/LL observation and a SPL-to-HAL mapping note where the source material used SPL names.
 - Hardware instructions state 3.3 V logic, disconnected-power rewiring, current limiting, common ground, and load-power boundaries where relevant.
 - Generated CubeMX files are committed; learner edits stay in generated `USER CODE` regions or focused `App/` files.
@@ -108,7 +108,7 @@ Create `curriculum/knowledge-tags.json` with schema version 1 and these IDs. Eac
 
 - [ ] **Step 2: Write failing repository-level tests**
 
-Include fixtures for a missing/duplicate source inventory ID, missing provenance, an omitted `splSymbols` field, and a lesson or lab that omits a required detection mode or non-applicable reason.
+Include fixtures for a missing/duplicate source inventory ID, missing provenance, an omitted `splSymbols` field, a lesson or lab that omits a required detection mode or non-applicable reason, a core-hardware tag without the required `semi-automatic + device + physicalHardware` or `manual + manual + physicalHardware` check, and a simulator check that claims `physicalHardware: true`.
 
 Create `scripts/content-validation/repository-content.test.ts` with temporary-repository fixtures that prove the validator reports each of these exact failures separately:
 
@@ -146,7 +146,7 @@ Add `RemediationManifestSchema`, `ExtensionManifestSchema`, and `PracticalGateSc
 7. Detect tag cycles by depth-first traversal with visiting/visited sets.
 8. Verify the union of week `sourceCourseIds` equals all 46 course-map IDs.
 
-Also validate `curriculum/source-api-inventory.json`: require exactly the 46 course-map IDs once each; require non-empty `sourceTitle`, HTTPS `sourceUrl`, `accessedAt` in `YYYY-MM-DD`, and an explicit `splSymbols` array for every record. Require every lesson and lab to pass the shared `detectionChecks` schema, including all three modes and explicit non-applicable reasons. For core hardware tags, require an applicable `semi-automatic` check and an applicable `manual` check; reject simulator-only evidence as proof of physical behavior.
+Also validate `curriculum/source-api-inventory.json`: require exactly the 46 course-map IDs once each; require non-empty `sourceTitle`, HTTPS `sourceUrl`, `accessedAt` in `YYYY-MM-DD`, and an explicit `splSymbols` array for every record. Require every lesson and lab to pass the shared `detectionChecks` schema, including all three modes and explicit non-applicable reasons. For each of the exact 12 foundation `CORE_HARDWARE_TAG_IDS`, aggregate the lesson with that `targetTagId` and its referenced lab manifests, then require an applicable `semi-automatic` check with `evidenceSource: 'device'` and `physicalHardware: true`, and an applicable `manual` check with `evidenceSource: 'manual'` and `physicalHardware: true`; reject any simulator check with `physicalHardware: true` and never let simulator evidence satisfy a physical-behavior requirement.
 9. Verify required core topic tags each have at least one lesson, lab, fault task, and assessment item.
 10. Require `资料来源` to contain at least one HTTPS URL and `访问日期：YYYY-MM-DD`; peripheral weeks 3–22 must contain at least one `st.com` or `dev.st.com` primary source.
 
@@ -189,7 +189,7 @@ Add a test asserting weeks 1–4 have 4 manifests, 4 Markdown bodies, 4 labs, 4 
 
 - [ ] **Step 2: Author the exact learning spine**
 
-For every lesson and lab authored in Tasks 2 through 7, populate the foundation plan's shared `detectionChecks` contract. Declare all three modes. For core hardware topics include an applicable device/semi-automatic path and an applicable manual path; express any unavailable mode as `applicable: false` with its reason, and never treat simulator output as physical-hardware proof.
+For every lesson and lab authored in Tasks 2 through 7, populate the foundation plan's shared `detectionChecks` contract. Declare all three modes. For every tag in the exact 12-item `CORE_HARDWARE_TAG_IDS` set, include an applicable `semi-automatic` check with `evidenceSource: 'device'` and `physicalHardware: true`, and an applicable `manual` check with `evidenceSource: 'manual'` and `physicalHardware: true`; express any other unavailable mode as `applicable: false` with its reason, and never treat simulator output as physical-hardware proof.
 
 Use the common ten-heading Markdown contract and this week-specific content:
 
@@ -464,9 +464,7 @@ w21-rtc-bkp, w22-pwr-wdg-flash, w23-capstone
 
 `common-rubric.md` defines observable anchors for 0/25/50/75/100 within each category and explains the 25/25/35/15 weighting. `weekly-note.md` contains YAML metadata and the seven export sections used by `toMarkdownNote`.
 
-`docs/references/spl-to-hal-map.md` groups every SPL name appearing in source courses 06-1 through 49 by peripheral. Each row contains the SPL symbol, HAL/LL replacement or “直接寄存器概念”, required CubeMX setting, relevant register/flag, and a warning when behavior is not one-to-one. The validator extracts SPL-like identifiers from the source mapping inventory and fails if any identifier has no row.
-
-The SPL map is derived only from the versioned `curriculum/source-api-inventory.json`: every unique non-empty `splSymbols` value has exactly one row, and the validator rejects missing or duplicate rows. This supersedes any attempt to scan unversioned source-course inputs at validation time.
+`docs/references/spl-to-hal-map.md` groups every unique non-empty SPL symbol from all 46 records in the versioned `curriculum/source-api-inventory.json` by peripheral. Each symbol has exactly one row containing the HAL/LL replacement or “直接寄存器概念”, required CubeMX setting, relevant register/flag, and a warning when behavior is not one-to-one. The validator reads only this inventory and rejects missing or duplicate rows; it never scans unversioned source-course inputs.
 
 Create remediation files for these exact action/tag families:
 
@@ -540,7 +538,7 @@ git commit -m "test: verify complete curriculum and firmware matrix"
 - [ ] All 24 week manifests and Markdown lessons pass the ten-heading contract.
 - [ ] All 46 source IDs are mapped and no required peripheral lacks concept/lab/assessment/fault evidence.
 - [ ] The versioned source API inventory has exactly 46 provenance-complete records, and every unique non-empty inventory SPL symbol has exactly one SPL-to-HAL map row.
-- [ ] Every lesson and lab has automatic, semi-automatic, and manual `detectionChecks`; core hardware retains applicable device and manual paths, while simulator evidence never proves physical behavior.
+- [ ] Every lesson and lab has automatic, semi-automatic, and manual `detectionChecks`; each of the exact 12 core hardware tags has applicable `semi-automatic + device + physicalHardware` and `manual + manual + physicalHardware` paths, while simulator evidence never proves physical behavior.
 - [ ] Each week assessment implements 25/25/35/15 evidence categories.
 - [ ] Every four weeks has an integrated gate with the approved thresholds.
 - [ ] All hardware labs have specific safety, wiring, observation, and recovery instructions.

@@ -192,7 +192,7 @@ i2c.mpu6050-id, spi.flash-id, spi.flash-roundtrip, rtc.bkp,
 wdg.reset-cause, flash.reserved-page, pwr.sleep-wake
 ```
 
-Assert every entry declares `detectionCheck`, `timeoutMs`, `firmwareVersion`, `wiring`, `safety`, and `lessonTagIds`; `detectionCheck` is the shared foundation `DetectionCheck` shape and each lesson-linked mode is declared by the curriculum record. Both flash-write tests mention their reserved region and restore behavior.
+Assert every entry declares `detectionCheck`, `timeoutMs`, `firmwareVersion`, `wiring`, `safety`, and `lessonTagIds`; `detectionCheck` is the shared foundation `DetectionCheck` shape, including its `simulator`/`device`/`manual` `evidenceSource` enum and `physicalHardware` boolean. A simulator check must have `physicalHardware: false`; each core-hardware device test consumes the curriculum-declared matching mode rather than defining a second model. Both flash-write tests mention their reserved region and restore behavior.
 
 - [ ] **Step 3: Implement the catalog as immutable data**
 
@@ -214,7 +214,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[];
 export function getDeviceTest(id: string): DeviceTestDefinition;
 ```
 
-Use `detectionCheck.mode: 'automatic'` for hello/chip ID/GPIO loopback/PWM capture/DMA/USART/I2C ID/SPI ID and roundtrip/FLASH reserved page. Use `semi-automatic` for EXTI, ADC movement, RTC/BKP, WDG, and PWR. No catalog entry claims automatic LED, sound, servo, or motor proof; each check supplies the shared action, evidence, limitation, and applicability fields.
+Use `detectionCheck.mode: 'automatic'`, `evidenceSource: 'device'`, and `physicalHardware: true` for hello/chip ID/GPIO loopback/PWM capture/DMA/USART/I2C ID/SPI ID and roundtrip/FLASH reserved page. Use `semi-automatic` with the same device/physical fields for EXTI, ADC movement, RTC/BKP, WDG, and PWR. No catalog entry claims automatic LED, sound, servo, or motor proof; each check supplies the shared action, evidence, limitation, applicability, source, and physical fields.
 
 - [ ] **Step 4: Write failing simulator scenario tests**
 
@@ -310,7 +310,10 @@ Create `deviceResultToEvidence.ts`:
 ```ts
 export function deviceResultToEvidence(outcome: DeviceRunOutcome, lessonId: string): EvidenceRecord {
   const simulated = outcome.transportKind === 'simulator';
-  const automatic = outcome.definition.detectionCheck.mode === 'automatic' && outcome.definition.detectionCheck.applicable;
+  const automatic = outcome.definition.detectionCheck.mode === 'automatic'
+    && outcome.definition.detectionCheck.applicable
+    && outcome.definition.detectionCheck.evidenceSource === 'device'
+    && outcome.definition.detectionCheck.physicalHardware;
   const passed = outcome.result.status === 'pass';
   const status = simulated || !automatic ? 'pending' : passed ? 'auto-pass' : 'failed';
   return {

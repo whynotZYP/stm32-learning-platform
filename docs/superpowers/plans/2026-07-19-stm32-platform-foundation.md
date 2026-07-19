@@ -15,8 +15,9 @@
 - The course has exactly 24 weeks and exactly 46 source IDs: `05`, `06-1`, `06-2`, and `07` through `49`.
 - Required topic tags include GPIO, EXTI, TIM, ADC, DMA, USART, I2C, SPI, RTC, PWR, WDG, and FLASH.
 - HAL is the mainline; LL/register and SPL migration metadata remain distinguishable.
-- Every lesson and lab uses exactly one shared `detectionChecks` record for each of `automatic`, `semi-automatic`, and `manual`; each record states action, expected evidence, limitation, applicability, and a reason when not applicable.
-- Core hardware topics retain applicable semi-automatic/device and manual checks; simulator evidence is never proof of physical hardware behavior.
+- Every lesson and lab uses exactly one shared `detectionChecks` record for each of `automatic`, `semi-automatic`, and `manual`; each record states action, expected evidence, limitation, applicability, `evidenceSource`, `physicalHardware`, and a reason when not applicable.
+- The normalized core hardware tag set is exactly `gpio.output-mode`, `exti.event-flow`, `tim.timebase`, `adc.sampling`, `dma.transfer`, `usart.physical-frame`, `i2c.protocol`, `spi.protocol`, `rtc.time`, `pwr.low-power`, `wdg.recovery`, and `flash.persistence`.
+- Every normalized core hardware tag retains an applicable `semi-automatic` check with `evidenceSource: 'device'` and `physicalHardware: true`, plus an applicable `manual` check with `evidenceSource: 'manual'` and `physicalHardware: true`; `evidenceSource: 'simulator'` always has `physicalHardware: false` and never proves physical behavior.
 - Tests are written before implementation, verification output is inspected, and each task ends with a focused commit.
 
 ---
@@ -303,9 +304,9 @@ describe('content contracts', () => {
       assessmentId: 'assessment-w04',
       safety: ['LED 必须串联限流电阻。'],
       detectionChecks: [
-        { mode: 'automatic', action: '运行 GPIO 回读检查', expectedEvidence: '串口返回引脚高低电平', limitation: '不能证明 LED 亮度', applicable: true },
-        { mode: 'semi-automatic', action: '按下按键并确认计数变化', expectedEvidence: '计数和观察确认', limitation: '需要学习者确认现象', applicable: true },
-        { mode: 'manual', action: '观察 LED 是否点亮', expectedEvidence: '学习者勾选观察结果', limitation: '不能由模拟器或构建结果证明', applicable: true },
+        { mode: 'automatic', action: '运行 GPIO 回读检查', expectedEvidence: '串口返回引脚高低电平', limitation: '不能证明 LED 亮度', applicable: true, evidenceSource: 'device', physicalHardware: true },
+        { mode: 'semi-automatic', action: '按下按键并确认计数变化', expectedEvidence: '计数和观察确认', limitation: '需要学习者确认现象', applicable: true, evidenceSource: 'device', physicalHardware: true },
+        { mode: 'manual', action: '观察 LED 是否点亮', expectedEvidence: '学习者勾选观察结果', limitation: '不能由模拟器或构建结果证明', applicable: true, evidenceSource: 'manual', physicalHardware: true },
       ],
     });
     expect(result.success).toBe(true);
@@ -336,7 +337,8 @@ describe('content contracts', () => {
   });
 
   it('rejects missing modes and a non-applicable check without a reason', () => {
-    expect(LessonManifestSchema.safeParse({ schemaVersion: 1, id: 'w01-foundations', week: 1, title: '基础', estimatedMinutes: 180, sourceCourseIds: ['05'], prerequisiteTagIds: [], targetTagIds: ['foundation.binary'], objectives: ['能够解释二进制与十六进制的关系'], conceptPath: 'curriculum/weeks/w01.md', labIds: ['lab-w01-breadboard'], assessmentId: 'assessment-w01', safety: ['断电后再检查接线。'], detectionChecks: [{ mode: 'automatic', action: '运行桌面练习', expectedEvidence: '测试输出', limitation: '不涉及物理硬件', applicable: false }] }).success).toBe(false);
+    expect(LessonManifestSchema.safeParse({ schemaVersion: 1, id: 'w01-foundations', week: 1, title: '基础', estimatedMinutes: 180, sourceCourseIds: ['05'], prerequisiteTagIds: [], targetTagIds: ['foundation.binary'], objectives: ['能够解释二进制与十六进制的关系'], conceptPath: 'curriculum/weeks/w01.md', labIds: ['lab-w01-breadboard'], assessmentId: 'assessment-w01', safety: ['断电后再检查接线。'], detectionChecks: [{ mode: 'automatic', action: '运行桌面练习', expectedEvidence: '测试输出', limitation: '不涉及物理硬件', applicable: false, evidenceSource: 'simulator', physicalHardware: false }] }).success).toBe(false);
+    expect(LessonManifestSchema.safeParse({ schemaVersion: 1, id: 'w01-foundations', week: 1, title: '基础', estimatedMinutes: 180, sourceCourseIds: ['05'], prerequisiteTagIds: [], targetTagIds: ['foundation.binary'], objectives: ['能够解释二进制与十六进制的关系'], conceptPath: 'curriculum/weeks/w01.md', labIds: ['lab-w01-breadboard'], assessmentId: 'assessment-w01', safety: ['断电后再检查接线。'], detectionChecks: [{ mode: 'automatic', action: '运行模拟器检查', expectedEvidence: '模拟器日志', limitation: '不能证明物理硬件', applicable: true, evidenceSource: 'simulator', physicalHardware: true, reason: '故意构造无效物理声明' }, { mode: 'semi-automatic', action: '设备检查', expectedEvidence: '设备日志', limitation: '需确认', applicable: true, evidenceSource: 'device', physicalHardware: true }, { mode: 'manual', action: '手动观察', expectedEvidence: '观察记录', limitation: '主观确认', applicable: true, evidenceSource: 'manual', physicalHardware: true }] }).success).toBe(false);
     expect(LabManifestSchema.safeParse({ schemaVersion: 1, id: 'lab-w01-breadboard', lessonId: 'w01-foundations', title: '面包板检查', hardware: ['面包板'], wiringChecklist: ['断电后检查电源轨与导线'], safety: ['断电后再接线。'], expectedObservations: ['连接路径完整'], faultTasks: ['断开一根导线后定位'], detectionChecks: [] }).success).toBe(false);
   });
 });
@@ -367,15 +369,24 @@ export const KnowledgeTagSchema = z.object({
 });
 
 export const DetectionModeSchema = z.enum(['automatic', 'semi-automatic', 'manual']);
+export const DetectionEvidenceSourceSchema = z.enum(['simulator', 'device', 'manual']);
+export const CORE_HARDWARE_TAG_IDS = [
+  'gpio.output-mode', 'exti.event-flow', 'tim.timebase', 'adc.sampling',
+  'dma.transfer', 'usart.physical-frame', 'i2c.protocol', 'spi.protocol',
+  'rtc.time', 'pwr.low-power', 'wdg.recovery', 'flash.persistence',
+] as const;
 export const DetectionCheckSchema = z.object({
   mode: DetectionModeSchema,
   action: z.string().min(8),
   expectedEvidence: z.string().min(4),
   limitation: z.string().min(4),
   applicable: z.boolean(),
+  evidenceSource: DetectionEvidenceSourceSchema,
+  physicalHardware: z.boolean(),
   reason: z.string().min(1).optional(),
 }).superRefine((check, context) => {
   if (!check.applicable && !check.reason?.trim()) context.addIssue({ code: z.ZodIssueCode.custom, path: ['reason'], message: '不适用时必须说明原因' });
+  if (check.evidenceSource === 'simulator' && check.physicalHardware) context.addIssue({ code: z.ZodIssueCode.custom, path: ['physicalHardware'], message: '模拟器不能声明物理硬件证据' });
 });
 
 const DetectionChecksSchema = z.array(DetectionCheckSchema).length(3).superRefine((checks, context) => {

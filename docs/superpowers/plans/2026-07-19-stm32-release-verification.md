@@ -14,7 +14,7 @@
 - After one successful online load, core navigation, course text, assessments, progress, notes, and simulator remain usable offline.
 - Web Serial still requires a supported secure-context browser and cannot reconnect without browser/user participation.
 - Automated software evidence and real-hardware evidence have different requirement IDs and statuses.
-- The audit consumes the foundation plan's shared `detectionChecks` contract; it does not define a second evidence-mode model. Simulator evidence never satisfies a physical-hardware detection check.
+- The audit consumes the foundation plan's shared `detectionChecks` contract; it does not define a second evidence-mode model. It evaluates the contract's `simulator`/`device`/`manual` `evidenceSource` and `physicalHardware` fields, so simulator evidence never satisfies a physical-hardware detection check.
 - `passed` requires direct inspected evidence; missing, indirect, or simulated physical evidence is `pending` or `failed`.
 - User documentation uses Chinese and explains first-use terminology in plain language.
 - Release output lives in `outputs/`; intermediate logs live in `work/`.
@@ -347,7 +347,7 @@ LEARNER_DOCS, REAL_HARDWARE
 
 Each JSON record contains `id`, Chinese `requirement`, `evidenceKind` (`file`, `command`, `deployment`, or `hardware`), exact `evidenceKeys`, and `requiredForSoftwareRelease`. Set `REAL_HARDWARE` false for software-package release but true for the full goal completion decision; represent this with a separate `requiredForGoalCompletion: true` field.
 
-For `COURSE_CONTENT`, the exact evidence keys include the versioned `curriculum/source-api-inventory.json`, the validator result for all 46 provenance-complete records and one-to-one non-empty SPL mappings, and the validator result proving every lesson/lab declares all three shared `detectionChecks` modes. The `REAL_HARDWARE` evaluator uses those same check modes and accepts only direct device or manual evidence for physical behavior.
+For `COURSE_CONTENT`, the exact evidence keys include the versioned `curriculum/source-api-inventory.json`, the validator result for all 46 provenance-complete records and one-to-one non-empty SPL mappings, and the validator result proving every lesson/lab declares all three shared `detectionChecks` modes. For the exact 12 core hardware tags, that result must include applicable `semi-automatic + device + physicalHardware` and `manual + manual + physicalHardware` checks. The `REAL_HARDWARE` evaluator uses those same `evidenceSource`/`physicalHardware` fields, rejects simulator/physical combinations, and accepts only direct device or manual physical evidence.
 
 - [ ] **Step 2: Write failing auditor truthfulness tests**
 
