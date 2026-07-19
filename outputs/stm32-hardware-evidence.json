@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "board": "STM32F103C8T6",
+  "adapter": "ST-LINK V2 + 3.3 V USB-TTL",
+  "firmware": "device-test-v1",
+  "tester": "",
+  "startedAt": null,
+  "finishedAt": null,
+  "checks": [
+    { "id": "flash-and-boot", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "serial-handshake", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "chip-id", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "disconnect-reconnect", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "gpio-loopback", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "pwm-capture-loopback", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "mpu6050-id", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "w25q64-id", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "w25q64-roundtrip-restore", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "rtc-bkp", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "watchdog-reset-cause", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "internal-flash-roundtrip-restore", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "manual-led", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "manual-buzzer", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "manual-servo-motor", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "pwr-wake", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" },
+    { "id": "pwr-current", "status": "pending", "evidenceSource": null, "physicalHardware": true, "actual": {}, "timestamp": null, "connectionNotes": "" }
+  ]
+}

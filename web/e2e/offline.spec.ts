@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+test.skip(process.env.E2E_PREVIEW !== '1', '离线缓存只在生产预览中生成');
+
 test('cached production site supports the core learning journey offline', async ({ context, page }) => {
   await page.goto('/#/');
   await page.evaluate(async () => {

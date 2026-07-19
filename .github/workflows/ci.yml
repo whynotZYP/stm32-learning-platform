@@ -64,3 +64,7 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - name: Verify production offline journey
+        env:
+          E2E_PREVIEW: 1
+        run: npm run test:e2e -- web/e2e/offline.spec.ts
