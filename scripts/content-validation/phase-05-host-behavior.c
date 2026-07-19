@@ -14,31 +14,64 @@
   } \
 } while (0)
 
+typedef enum {
+  I2C_EVENT_SDA_RELEASE = 1,
+  I2C_EVENT_SCL_LOW,
+  I2C_EVENT_SCL_RELEASE,
+  I2C_EVENT_SDA_LOW
+} FakeI2cEvent;
+
 typedef struct {
   uint8_t scl;
-  uint8_t sda;
+  uint8_t master_sda_released;
   uint8_t hold_scl_low;
   uint32_t scl_low_count;
   uint32_t scl_release_count;
   uint32_t sda_low_count;
   uint32_t sda_release_count;
   uint32_t now_ticks;
-  uint8_t hold_sda_low;
-  uint8_t release_sda_after_nine;
+  uint8_t slave_holds_sda_low;
+  uint8_t release_slave_sda_after_nine;
+  FakeI2cEvent events[64];
+  uint8_t event_count;
 } FakeI2c;
+
+static void i2c_record(FakeI2c *fake, FakeI2cEvent event)
+{
+  if (fake->event_count < 64U) fake->events[fake->event_count++] = event;
+}
 
 static void i2c_scl_low(void *context)
 {
   FakeI2c *fake = context;
   fake->scl = 0U;
   ++fake->scl_low_count;
-  if (fake->release_sda_after_nine && fake->scl_low_count >= 9U) fake->hold_sda_low = 0U;
+  i2c_record(fake, I2C_EVENT_SCL_LOW);
 }
-static void i2c_scl_release(void *context) { FakeI2c *fake = context; fake->scl = 1U; ++fake->scl_release_count; }
-static void i2c_sda_low(void *context) { FakeI2c *fake = context; fake->sda = 0U; ++fake->sda_low_count; }
-static void i2c_sda_release(void *context) { FakeI2c *fake = context; fake->sda = 1U; ++fake->sda_release_count; }
+static void i2c_scl_release(void *context)
+{
+  FakeI2c *fake = context;
+  fake->scl = 1U;
+  ++fake->scl_release_count;
+  i2c_record(fake, I2C_EVENT_SCL_RELEASE);
+  if (fake->release_slave_sda_after_nine && fake->scl_low_count >= 9U) fake->slave_holds_sda_low = 0U;
+}
+static void i2c_sda_low(void *context)
+{
+  FakeI2c *fake = context;
+  fake->master_sda_released = 0U;
+  ++fake->sda_low_count;
+  i2c_record(fake, I2C_EVENT_SDA_LOW);
+}
+static void i2c_sda_release(void *context)
+{
+  FakeI2c *fake = context;
+  fake->master_sda_released = 1U;
+  ++fake->sda_release_count;
+  i2c_record(fake, I2C_EVENT_SDA_RELEASE);
+}
 static uint8_t i2c_read_scl(void *context) { FakeI2c *fake = context; return fake->hold_scl_low ? 0U : fake->scl; }
-static uint8_t i2c_read_sda(void *context) { FakeI2c *fake = context; return fake->hold_sda_low ? 0U : fake->sda; }
+static uint8_t i2c_read_sda(void *context) { FakeI2c *fake = context; return fake->master_sda_released && !fake->slave_holds_sda_low; }
 static void i2c_step(void *context) { ((FakeI2c *)context)->now_ticks += 5U; }
 static uint32_t i2c_now_ticks(void *context) { return ((FakeI2c *)context)->now_ticks; }
 
@@ -53,31 +86,46 @@ static I2cBitBangBus make_i2c_bus(FakeI2c *fake)
 
 static int test_i2c_release_timeout_nack_and_recovery(void)
 {
+  FakeI2c held = {0};
+  held.slave_holds_sda_low = 1U;
+  i2c_sda_release(&held);
+  CHECK(held.master_sda_released == 1U && i2c_read_sda(&held) == 0U);
+
   FakeI2c fake = {0};
   fake.scl = 1U;
+  fake.slave_holds_sda_low = 1U;
+  fake.release_slave_sda_after_nine = 1U;
   I2cBitBangBus bus = make_i2c_bus(&fake);
   CHECK(I2cBitBang_Recover(&bus) == I2C_RESULT_OK);
   CHECK(fake.scl_low_count == 9U);
   CHECK(fake.scl_release_count == 9U);
   CHECK(fake.sda_low_count == 1U);
-  CHECK(fake.sda_release_count == 1U);
-  CHECK(fake.scl == 1U && fake.sda == 1U);
+  CHECK(fake.sda_release_count == 2U);
+  CHECK(fake.event_count == 21U && fake.events[0] == I2C_EVENT_SDA_RELEASE);
+  for (uint8_t pulse = 0U; pulse < 9U; ++pulse) {
+    CHECK(fake.events[1U + pulse * 2U] == I2C_EVENT_SCL_LOW);
+    CHECK(fake.events[2U + pulse * 2U] == I2C_EVENT_SCL_RELEASE);
+  }
+  CHECK(fake.events[19] == I2C_EVENT_SDA_LOW && fake.events[20] == I2C_EVENT_SDA_RELEASE);
+  CHECK(fake.scl == 1U && fake.master_sda_released == 1U && fake.slave_holds_sda_low == 0U);
 
   fake = (FakeI2c){0};
-  fake.scl = 1U; fake.sda = 1U;
+  fake.scl = 1U; fake.master_sda_released = 1U;
   bus = make_i2c_bus(&fake);
   CHECK(I2cBitBang_WriteByte(&bus, 0xA0U) == I2C_RESULT_NACK);
   CHECK(fake.scl_low_count >= 8U);
   CHECK(fake.sda_release_count > 0U);
 
   fake = (FakeI2c){0};
-  fake.sda = 1U; fake.hold_scl_low = 1U;
+  fake.master_sda_released = 1U; fake.hold_scl_low = 1U;
   bus = make_i2c_bus(&fake);
   CHECK(I2cBitBang_WriteByte(&bus, 0x00U) == I2C_RESULT_TIMEOUT);
+  CHECK(fake.master_sda_released == 0U);
   CHECK(I2cBitBang_Recover(&bus) == I2C_RESULT_BUS_STUCK);
+  CHECK(fake.master_sda_released == 1U);
 
   fake = (FakeI2c){0};
-  fake.scl = 1U; fake.sda = 1U; fake.hold_sda_low = 1U; fake.release_sda_after_nine = 1U;
+  fake.scl = 1U; fake.master_sda_released = 1U; fake.slave_holds_sda_low = 1U; fake.release_slave_sda_after_nine = 1U;
   bus = make_i2c_bus(&fake);
   uint8_t value = 0U;
   const I2cRecoveryRead attempt = I2cBitBang_ReadRegisterRecovering(&bus, 0x68U, 0x75U, &value);

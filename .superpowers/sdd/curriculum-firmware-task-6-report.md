@@ -16,7 +16,7 @@
 
 ## 关键行为证据
 
-- 第 17 周软件 I2C 只提供“拉低/释放”操作，不主动推高总线；错误分为 timeout、NACK、bus-stuck。恢复固定发 9 个 SCL 脉冲和 STOP，随后明确重试一次。测试覆盖“首次 bus-stuck、恢复成功、重试 NACK”，证明恢复成功不会被误报成 WHO_AM_I 读取成功。
+- 第 17 周软件 I2C 只提供“拉低/释放”操作，不主动推高总线；错误分为 timeout、NACK、bus-stuck。恢复先释放 SDA，再固定发 9 个完整 SCL 脉冲和 STOP，随后明确重试一次。测试覆盖“首次 bus-stuck、恢复成功、重试 NACK”，证明恢复成功不会被误报成 WHO_AM_I 读取成功。
 - 软件 I2C 使用 DWT cycle counter 形成约 5 us 的半周期，并将约 10 ms 的 SCL stretch deadline 换算为 cycle ticks；硬件 I2C HAL 读取也使用 10 ms 有界等待。
 - 第 18 周先将高低字节组合为无符号 `uint16_t`，再转换为 `int16_t`；测试覆盖 `0x7FFF`、`0x8000`、`0xFFFF`，并覆盖量程、bias、限幅和有界滤波。
 - W25Q64 状态轮询使用 `HAL_GetTick` 对应的毫秒时钟和 wrap-safe 差值；页编程期限 10 ms、扇区擦除期限 500 ms。fake bus 每次状态读取推进虚拟时钟，测试同时覆盖 ready 和持续 busy 超时，未用固定次数冒充真实 deadline。
@@ -43,11 +43,18 @@ git diff --check
 - 全量测试：27 个测试文件、252 项测试全部通过。
 - TypeScript 类型检查通过；Vite 构建成功，共转换 133 个模块。
 - 四个工程均从 fresh CMake 配置重新生成并成功链接 ELF：
-  - w17：RAM 1672 B / 20 KiB，FLASH 10920 B，ELF 文件 733532 B。
+  - w17：RAM 1672 B / 20 KiB，FLASH 10932 B，ELF 文件 733536 B。
   - w18：RAM 1760 B / 20 KiB，FLASH 10180 B，ELF 文件 729472 B。
   - w19：RAM 5728 B / 20 KiB，FLASH 7372 B，ELF 文件 696540 B。
   - w20：RAM 5800 B / 20 KiB，FLASH 8676 B，ELF 文件 729968 B。
 - 空白检查通过。
+
+## 独立审查修复
+
+- RED：严格顺序测试先以 `fake.sda_release_count == 2U` 失败，证明原恢复函数没有在首个 SCL 脉冲前释放 SDA。
+- 根因：`WriteByte(0x00)` 在 SCL stretch 超时时，主机仍可能主动拉低 SDA；紧接着的失败 STOP 也可能来不及释放 SDA，因此恢复流程会从无效总线状态开始。
+- 修复：恢复 API 自身首先释放 SDA；主机 fake 分离“主机释放 SDA”和“从机保持 SDA 为低”，并记录事件序列，严格断言“释放 SDA → 9 个完整 SCL 脉冲 → STOP”。
+- GREEN：Phase 05 的 6/6 测试通过，固定扇区变异测试通过；“恢复成功但重试 NACK”仍返回 NACK，没有误报成功。
 
 ## 实机状态与诚实证据
 
@@ -56,3 +63,5 @@ git diff --check
 ## Commit
 
 `feat: teach MPU6050 and W25Q64 drivers`
+
+`fix: release SDA before I2C recovery`

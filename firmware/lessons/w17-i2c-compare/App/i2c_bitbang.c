@@ -95,6 +95,7 @@ I2cResult I2cBitBang_ReadRegister(I2cBitBangBus *bus, uint8_t address_7bit, uint
 
 I2cResult I2cBitBang_Recover(I2cBitBangBus *bus)
 {
+  bus->sda_release(bus->context);
   for (uint8_t pulse = 0U; pulse < 9U; ++pulse) {
     bus->scl_low(bus->context);
     bus->step(bus->context);
