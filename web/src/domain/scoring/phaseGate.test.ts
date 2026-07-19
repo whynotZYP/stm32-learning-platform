@@ -27,10 +27,10 @@ describe('evaluatePhaseGate', () => {
 
     expect(result).toMatchObject({ phaseId: 1, passed: false, phaseAverage: 70, practicalAverage: 60 });
     expect(result.reasons).toEqual([
-      '闃舵骞冲潎鍒?70锛岃姹傝嚦灏?75',
-      '瀹炴搷骞冲潎鍒?60锛岃姹傝嚦灏?70',
-      '鍓嶇疆鏍囩 adc 涓?69锛岃姹傝嚦灏?70',
-      '鍓嶇疆鏍囩 gpio 涓?65锛岃姹傝嚦灏?70',
+      '阶段平均分 70，要求至少 75',
+      '实操平均分 60，要求至少 70',
+      '前置标签 adc 为 69，要求至少 70',
+      '前置标签 gpio 为 65，要求至少 70',
     ]);
   });
 
@@ -49,11 +49,44 @@ describe('evaluatePhaseGate', () => {
       passed: false,
       phaseAverage: 0,
       practicalAverage: 0,
-      reasons: [
-        '闃舵骞冲潎鍒?0锛岃姹傝嚦灏?75',
-        '瀹炴搷骞冲潎鍒?0锛岃姹傝嚦灏?70',
-      ],
+      reasons: ['阶段平均分 0，要求至少 75', '实操平均分 0，要求至少 70'],
     });
     expect(input).toEqual({ phaseId: 1, lessonScores: [], practicalScores: [], prerequisiteScores: {} });
+  });
+
+  it('rounds only the final lesson average', () => {
+    expect(evaluatePhaseGate({
+      phaseId: 1,
+      lessonScores: [74.49, 74.49, 75.49],
+      practicalScores: [70],
+      prerequisiteScores: {},
+    }).phaseAverage).toBe(75);
+  });
+
+  it.each([Number.NaN, Infinity, -Infinity, -0.01, 100.01])('rejects invalid lesson score %s', (score) => {
+    expect(() => evaluatePhaseGate({
+      phaseId: 1,
+      lessonScores: [score],
+      practicalScores: [70],
+      prerequisiteScores: {},
+    })).toThrow('课程分数必须是 0 到 100 之间的有限数值');
+  });
+
+  it.each([Number.NaN, Infinity, -Infinity, -0.01, 100.01])('rejects invalid practical score %s', (score) => {
+    expect(() => evaluatePhaseGate({
+      phaseId: 1,
+      lessonScores: [75],
+      practicalScores: [score],
+      prerequisiteScores: {},
+    })).toThrow('实操分数必须是 0 到 100 之间的有限数值');
+  });
+
+  it.each([Number.NaN, Infinity, -Infinity, -0.01, 100.01])('rejects invalid prerequisite score %s', (score) => {
+    expect(() => evaluatePhaseGate({
+      phaseId: 1,
+      lessonScores: [75],
+      practicalScores: [70],
+      prerequisiteScores: { gpio: score },
+    })).toThrow('前置标签 gpio 的分数必须是 0 到 100 之间的有限数值');
   });
 });
