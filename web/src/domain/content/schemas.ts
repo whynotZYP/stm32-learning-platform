@@ -52,7 +52,7 @@ export const LessonManifestSchema = z.object({
   conceptPath: RepositoryPath,
   labIds: z.array(Id),
   assessmentId: Id,
-  safety: z.array(z.string().min(8)).min(1),
+  safety: z.array(z.string().min(7)).min(1),
   detectionChecks: DetectionChecksSchema,
 });
 
@@ -73,7 +73,7 @@ export const LabManifestSchema = z.object({
   title: z.string().min(2),
   hardware: z.array(z.string().min(2)),
   wiringChecklist: z.array(z.string().min(8)).min(1),
-  safety: z.array(z.string().min(8)).min(1),
+  safety: z.array(z.string().min(7)).min(1),
   expectedObservations: z.array(z.string().min(4)).min(1),
   faultTasks: z.array(z.string().min(8)).min(1),
   detectionChecks: DetectionChecksSchema,

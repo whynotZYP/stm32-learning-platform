@@ -27,6 +27,32 @@ describe('AssessmentPage', () => {
     expect(await screen.findByText('诊断记录已保存。')).toBeInTheDocument();
   });
 
+  it('keeps the assessment retryable when its one atomic batch save fails', async () => {
+    let attempts = 0;
+    const saved: ReturnType<typeof createDefaultState>[] = [];
+    const state = createDefaultState('2026-07-01T00:00:00.000Z');
+    const store: ProgressRepository = {
+      load: async () => structuredClone(state),
+      save: async (next) => { attempts += 1; if (attempts === 1) throw new Error('disk full'); saved.push(structuredClone(next)); },
+      snapshot: async () => structuredClone(state), replace: async () => undefined,
+    };
+    const router = createMemoryRouter([{ path: '/assessment/:assessmentId', element: <AssessmentPage /> }], { initialEntries: ['/assessment/entry-diagnostic'] });
+    render(<ProgressProvider repository={store}><RouterProvider router={router} /></ProgressProvider>);
+    await screen.findAllByRole('group');
+    for (const input of screen.getAllByLabelText('你的回答')) fireEvent.change(input, { target: { value: '回答' } });
+    const button = screen.getByRole('button', { name: '提交诊断' });
+    fireEvent.click(button);
+    expect(await screen.findByText('保存出现问题，诊断未被标记为完成，请检查后重试。')).toBeInTheDocument();
+    expect(button).toBeEnabled();
+    expect(saved).toHaveLength(0);
+    expect(attempts).toBe(1);
+    fireEvent.click(button);
+    await waitFor(() => expect(saved).toHaveLength(1));
+    expect(saved[0].evidence).toHaveLength(4);
+    expect(attempts).toBe(2);
+    expect(await screen.findByText('诊断记录已保存。')).toBeInTheDocument();
+  });
+
   it('shows a plain-Chinese page for an unknown assessment', async () => {
     const router = createMemoryRouter([{ path: '/assessment/:assessmentId', element: <AssessmentPage /> }], { initialEntries: ['/assessment/nope'] });
     render(<ProgressProvider repository={repository()}><RouterProvider router={router} /></ProgressProvider>);

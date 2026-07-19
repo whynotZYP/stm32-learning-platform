@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import entryDiagnosticData from '../../../assessments/question-banks/entry-diagnostic.json';
 import { useProgress } from '../app/ProgressContext';
@@ -10,24 +10,18 @@ const assessments = [AssessmentSchema.parse(entryDiagnosticData)];
 export function AssessmentPage() {
   const { assessmentId } = useParams();
   const assessment = assessments.find((item) => item.id === assessmentId);
-  const { state, error, recordEvidence } = useProgress();
+  const { recordEvidenceBatch } = useProgress();
   const [answers, setAnswers] = useState<Record<string, AssessmentAnswer>>({});
-  const [pendingIds, setPendingIds] = useState<string[] | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string>();
+  const mountedRef = useRef(true);
 
   const initialAnswers = useMemo(() => assessment
     ? Object.fromEntries(assessment.items.map((item) => [item.id, { score: item.maxScore, response: '' }]))
     : {}, [assessment]);
 
-  useEffect(() => { setAnswers(initialAnswers); setPendingIds(null); setMessage(undefined); }, [initialAnswers]);
-  useEffect(() => {
-    if (!pendingIds) return;
-    if (error) { setMessage('保存出现问题，诊断未被标记为完成，请检查后重试。'); setPendingIds(null); return; }
-    if (pendingIds.every((id) => state.evidence.some((item) => item.id === id))) {
-      setMessage('诊断记录已保存。');
-      setPendingIds(null);
-    }
-  }, [error, pendingIds, state.evidence]);
+  useEffect(() => { setAnswers(initialAnswers); setSubmitting(false); setMessage(undefined); }, [initialAnswers]);
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
   if (!assessment) return <section className="page"><h1>没有找到这份测验</h1><p>目前只提供入门诊断，请从学习首页重新进入。</p></section>;
 
@@ -37,11 +31,14 @@ export function AssessmentPage() {
   }));
 
   async function submit() {
-    if (!assessment || pendingIds) return;
+    if (!assessment || submitting) return;
     setMessage(undefined);
+    setSubmitting(true);
     const evidence = gradeAssessment(assessment, answers, new Date().toISOString());
-    await Promise.all(evidence.map((record) => recordEvidence(record)));
-    setPendingIds(evidence.map((record) => record.id));
+    const saved = await recordEvidenceBatch(evidence);
+    if (!mountedRef.current) return;
+    setSubmitting(false);
+    setMessage(saved ? '诊断记录已保存。' : '保存出现问题，诊断未被标记为完成，请检查后重试。');
   }
 
   return <section className="page"><h1>入门诊断</h1><p>请如实记录你的回答；开放题的分数是按量表确认的分数。</p>
@@ -51,7 +48,7 @@ export function AssessmentPage() {
       <label>你的回答<textarea value={answers[item.id]?.response ?? ''} onChange={(event) => updateAnswer(item.id, { response: event.target.value })} /></label>
       <p>评分量表：</p><ul>{item.rubric.map((criterion) => <li key={criterion}>{criterion}</li>)}</ul>
     </fieldset>)}
-    <button type="button" disabled={Boolean(pendingIds)} onClick={() => { void submit(); }}>提交诊断</button>
+    <button type="button" disabled={submitting} onClick={() => { void submit(); }}>提交诊断</button>
     {message && <p role="status">{message}</p>}
   </section>;
 }

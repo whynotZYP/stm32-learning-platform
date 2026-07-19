@@ -22,4 +22,11 @@ describe('DashboardPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '采用第 3 周建议' }));
     await waitFor(() => expect(saved.at(-1)).toMatchObject({ currentWeek: 3, evidence: initial.evidence, completedPhaseIds: [] }));
   });
+
+  it('still renders when the device clock is behind a valid future progress timestamp', async () => {
+    const initial = createDefaultState('2099-01-01T00:00:00.000Z');
+    const repository: ProgressRepository = { load: async () => structuredClone(initial), save: async () => undefined, snapshot: async () => structuredClone(initial), replace: async () => undefined };
+    render(<MemoryRouter><ProgressProvider repository={repository}><DashboardPage /></ProgressProvider></MemoryRouter>);
+    expect(await screen.findByRole('heading', { name: '今天从这里开始' })).toBeInTheDocument();
+  });
 });

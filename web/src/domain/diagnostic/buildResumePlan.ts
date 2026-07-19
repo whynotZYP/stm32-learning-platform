@@ -17,19 +17,19 @@ function parseDate(value: string): number {
 export function buildResumePlan(state: LearnerState, mastery: TagMastery[], now: string): ResumePlan {
   const updatedAt = parseDate(state.updatedAt);
   const current = parseDate(now);
-  if (current < updatedAt) throw new Error('日期顺序无效');
+  if (current < updatedAt) return { needsRecall: false, currentWeek: state.currentWeek, durationMinutes: 0, recallTagIds: [] };
   const gapDays = (current - updatedAt) / 86_400_000;
   if (gapDays <= 7) return { needsRecall: false, currentWeek: state.currentWeek, durationMinutes: 0, recallTagIds: [] };
 
-  const candidates = new Map<string, { score: number; order: number }>();
-  mastery.forEach((item, order) => {
+  const candidates = new Map<string, number>();
+  mastery.forEach((item) => {
     if (!Number.isFinite(item.score) || item.score < 0 || item.score > 100) throw new Error('掌握分数无效');
-    const currentItem = candidates.get(item.tagId);
-    if (!currentItem || item.score < currentItem.score) candidates.set(item.tagId, { score: item.score, order: currentItem?.order ?? order });
+    if (item.band !== 'mastered' && item.band !== 'review') return;
+    candidates.set(item.tagId, Math.min(candidates.get(item.tagId) ?? item.score, item.score));
   });
   const recallTagIds = [...candidates.entries()]
-    .filter(([, item]) => item.score >= 70)
-    .sort(([, a], [, b]) => a.score - b.score || a.order - b.order)
+    .filter(([, score]) => score >= 70)
+    .sort(([tagA, scoreA], [tagB, scoreB]) => scoreA - scoreB || tagA.localeCompare(tagB))
     .slice(0, 3)
     .map(([tagId]) => tagId);
   return { needsRecall: true, currentWeek: state.currentWeek, durationMinutes: 10, recallTagIds };

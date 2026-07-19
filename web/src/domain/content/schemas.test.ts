@@ -46,6 +46,18 @@ describe('content contracts', () => {
     expect(result.success).toBe(false);
   });
 
+  it('accepts the exact required power-off safety confirmation in a lab', () => {
+    const result = LabManifestSchema.safeParse({
+      schemaVersion: 1, id: 'lab-w04-led', lessonId: 'w04-gpio-output', title: 'LED 检查', hardware: ['开发板'], wiringChecklist: ['断电后连接 LED 与限流电阻。'], safety: ['接线已断电复核'], expectedObservations: ['LED 闪烁'], faultTasks: ['断开一根导线后定位问题。'],
+      detectionChecks: [
+        { mode: 'automatic', action: '读取 GPIO 状态寄存器', expectedEvidence: '寄存器变化', limitation: '不证明 LED 发光', applicable: true, evidenceSource: 'device', physicalHardware: true },
+        { mode: 'semi-automatic', action: '拍摄 LED 闪烁视频', expectedEvidence: '视频记录', limitation: '需要人工复核', applicable: true, evidenceSource: 'device', physicalHardware: true },
+        { mode: 'manual', action: '观察 LED 是否闪烁', expectedEvidence: '人工观察记录', limitation: '不能替代测量', applicable: true, evidenceSource: 'manual', physicalHardware: true },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
   it('rejects a course map with fewer than 24 weeks', () => {
     expect(CourseMapSchema.safeParse({ schemaVersion: 1, sourceCourseIds: [], requiredTagIds: [], weeks: [] }).success).toBe(false);
   });

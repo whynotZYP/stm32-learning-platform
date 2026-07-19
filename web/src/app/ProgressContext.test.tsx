@@ -43,6 +43,44 @@ function Probe({ onChange }: { onChange: (value: ProgressContextValue) => void }
 }
 
 describe('ProgressProvider', () => {
+  it('persists an evidence batch atomically and isolates its caller records', async () => {
+    const repository = createMemoryRepository();
+    const second = { ...evidence, id: 'evidence-2', tagIds: ['foundation.binary'] };
+    const records = [clone(evidence), second];
+    const { progress } = await renderProgress(repository);
+    let saved = false;
+    await act(async () => { saved = await progress().recordEvidenceBatch(records); });
+    records[0].tagIds[0] = 'mutated-by-caller';
+    expect(saved).toBe(true);
+    expect(repository.saved).toHaveLength(1);
+    expect(repository.saved[0].evidence).toMatchObject([{ id: 'evidence-1', tagIds: ['gpio.output-mode'] }, { id: 'evidence-2', tagIds: ['foundation.binary'] }]);
+    expect(progress().state.evidence).toHaveLength(2);
+  });
+
+  it('keeps a rejected evidence batch out of state and lets one retry save the full batch once', async () => {
+    let calls = 0;
+    const saved: LearnerState[] = [];
+    const repository: ProgressRepository = {
+      load: async () => createDefaultState(),
+      save: async (next) => { calls += 1; if (calls === 1) throw new Error('disk full'); saved.push(clone(next)); },
+      snapshot: async () => createDefaultState(), replace: async () => undefined,
+    };
+    const records = [evidence, { ...evidence, id: 'evidence-2' }];
+    const { progress } = await renderProgress(repository);
+    let first = true;
+    await act(async () => { first = await progress().recordEvidenceBatch(records); });
+    expect(first).toBe(false);
+    expect(progress().state.evidence).toEqual([]);
+    expect(progress().error).toBe('暂时无法保存学习进度，请稍后再试。');
+    let second = false;
+    await act(async () => { second = await progress().recordEvidenceBatch(records); });
+    expect(second).toBe(true);
+    expect(calls).toBe(2);
+    expect(saved).toHaveLength(1);
+    expect(saved[0].evidence.map((item) => item.id)).toEqual(['evidence-1', 'evidence-2']);
+    expect(progress().error).toBeUndefined();
+  });
+
   it('waits for the initial load before deriving an early action', async () => {
     const loading = deferred<LearnerState>();
     const saved: LearnerState[] = [];
