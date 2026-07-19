@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createDefaultState } from '../domain/progress/defaultState';
-import { importBackup } from '../domain/backup/backup';
+import { BackupCommittedStateError, importBackup } from '../domain/backup/backup';
 import type { ProgressRepository } from '../domain/progress/repository';
 import type { EvidenceRecord, LearnerState } from '../domain/progress/types';
 
@@ -12,8 +12,10 @@ export interface ProgressActions {
   saveNote(lessonId: string, markdown: string): Promise<void>;
   setCurrentWeek(week: number): Promise<void>;
   replaceState(state: LearnerState): Promise<void>;
-  restoreBackup(json: string): Promise<boolean>;
+  restoreBackup(json: string): Promise<RestoreBackupResult>;
 }
+
+export type RestoreBackupResult = 'restored' | 'restored-unverified' | 'conflict' | 'failed';
 
 export interface ProgressContextValue extends ProgressActions { state: LearnerState; loading: boolean; error: string | undefined; }
 
@@ -128,12 +130,21 @@ export function ProgressProvider({ repository, children }: { repository: Progres
       const restored = await importBackup(json, boundRepository);
       publish(restored);
       clearError();
-      return true;
-    } catch {
+      return 'restored' as const;
+    } catch (caught) {
+      if (caught instanceof BackupCommittedStateError) {
+        publish(caught.state);
+        if (caught.kind === 'committed-unverified') {
+          showError('备份已恢复但暂时无法验证，请刷新页面后确认。');
+          return 'restored-unverified' as const;
+        }
+        showError('检测到其他窗口的学习进度变化，已采用最新进度，请确认后再继续。');
+        return 'conflict' as const;
+      }
       showError('暂时无法恢复备份，原有学习进度未改变。');
-      return false;
+      return 'failed' as const;
     }
-  }, false), [enqueue, boundRepository, publish, clearError, showError]);
+  }, 'failed' as const), [enqueue, boundRepository, publish, clearError, showError]);
 
   const value = useMemo<ProgressContextValue>(() => ({ state, loading, error, recordEvidence, recordEvidenceBatch, saveNote, setCurrentWeek, replaceState, restoreBackup }), [state, loading, error, recordEvidence, recordEvidenceBatch, saveNote, setCurrentWeek, replaceState, restoreBackup]);
   return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;

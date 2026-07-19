@@ -298,14 +298,63 @@ describe('ProgressProvider', () => {
     await act(async () => { await progress().saveNote('before', '保留直到恢复'); });
     const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 8, notes: { imported: '已恢复' } };
     repository.saved.length = 0;
-    let restored = false;
+    let restored: unknown;
     await act(async () => { restored = await progress().restoreBackup(exportBackup(incoming, '2026-07-19T02:00:00.000Z')); });
-    expect(restored).toBe(true);
+    expect(restored).toBe('restored');
     expect(progress().state).toEqual(incoming);
     const beforeInvalid = structuredClone(progress().state);
     await act(async () => { restored = await progress().restoreBackup('{'); });
-    expect(restored).toBe(false);
+    expect(restored).toBe('failed');
     expect(progress().state).toEqual(beforeInvalid);
+    expect(progress().error).toBe('暂时无法恢复备份，原有学习进度未改变。');
+  });
+
+  it('uses the imported baseline after a committed but unverified restore', async () => {
+    const initial = createDefaultState('2026-07-19T00:00:00.000Z');
+    const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 7, notes: { imported: 'keep' } };
+    let loads = 0;
+    const saved: LearnerState[] = [];
+    const repository: ProgressRepository = {
+      async load() { loads += 1; if (loads === 1) return clone(initial); throw new Error('verification unavailable'); },
+      async save(next) { saved.push(clone(next)); }, snapshot: async () => clone(initial), replace: async () => undefined,
+    };
+    const { progress } = await renderProgress(repository);
+    let result: unknown;
+    await act(async () => { result = await progress().restoreBackup(exportBackup(incoming)); });
+    expect(result).toBe('restored-unverified');
+    expect(progress().state).toEqual(incoming);
+    expect(progress().error).toContain('已恢复但暂时无法验证');
+    await act(async () => { await progress().saveNote('after', 'uses imported state'); });
+    expect(saved[0]).toMatchObject({ currentWeek: 7, notes: { imported: 'keep', after: 'uses imported state' } });
+  });
+
+  it('publishes the verified actual state when another window caused a restore conflict', async () => {
+    const initial = createDefaultState('2026-07-19T00:00:00.000Z');
+    const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 7 };
+    const actual = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 8, notes: { otherWindow: 'newer' } };
+    let loads = 0;
+    const repository: ProgressRepository = {
+      async load() { loads += 1; return clone(loads === 1 ? initial : actual); }, save: async () => undefined,
+      snapshot: async () => clone(initial), replace: async () => undefined,
+    };
+    const { progress } = await renderProgress(repository);
+    let result: unknown;
+    await act(async () => { result = await progress().restoreBackup(exportBackup(incoming)); });
+    expect(result).toBe('conflict');
+    expect(progress().state).toEqual(actual);
+    expect(progress().error).toContain('其他窗口');
+  });
+
+  it('keeps the old baseline after replace fails during restore', async () => {
+    const initial = { ...createDefaultState('2026-07-19T00:00:00.000Z'), currentWeek: 3 };
+    const repository: ProgressRepository = {
+      load: async () => clone(initial), save: async () => undefined, snapshot: async () => clone(initial), replace: async () => { throw new Error('offline'); },
+    };
+    const { progress } = await renderProgress(repository);
+    let result: unknown;
+    await act(async () => { result = await progress().restoreBackup(exportBackup({ ...initial, currentWeek: 7 })); });
+    expect(result).toBe('failed');
+    expect(progress().state).toEqual(initial);
     expect(progress().error).toBe('暂时无法恢复备份，原有学习进度未改变。');
   });
 });

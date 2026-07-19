@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultState } from '../progress/defaultState';
 import type { ProgressRepository } from '../progress/repository';
 import type { LearnerState } from '../progress/types';
-import { exportBackup, importBackup } from './backup';
+import { BackupCommittedStateError, exportBackup, importBackup } from './backup';
 
 const clone = <T,>(value: T): T => structuredClone(value);
 
@@ -70,5 +70,38 @@ describe('backup export and import', () => {
     const repo: ProgressRepository = { load: async () => clone(active), save: async () => undefined, snapshot: async () => clone(active), replace: async () => { throw new Error('offline'); } };
     await expect(importBackup(exportBackup(incoming), repo)).rejects.toThrow('offline');
     expect(await repo.load()).toEqual(active);
+  });
+
+  it('reports an imported baseline when replacement committed but verification load rejects', async () => {
+    const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 7, notes: { imported: 'keep' } };
+    const repo: ProgressRepository = {
+      load: async () => { throw new Error('verification unavailable'); }, save: async () => undefined,
+      snapshot: async () => createDefaultState(), replace: async () => undefined,
+    };
+    let error: unknown;
+    try { await importBackup(exportBackup(incoming), repo); } catch (caught) { error = caught; }
+    expect(error).toBeInstanceOf(BackupCommittedStateError);
+    const committed = error as BackupCommittedStateError;
+    expect(committed.kind).toBe('committed-unverified');
+    expect(committed.state).toEqual(incoming);
+    committed.state.notes.imported = 'mutated-error';
+    expect(incoming.notes.imported).toBe('keep');
+  });
+
+  it('reports verified conflicting state after replacement commits and preserves the incoming clone', async () => {
+    const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 7 };
+    const actual = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 8, notes: { otherWindow: 'newer' } };
+    const repo: ProgressRepository = {
+      load: async () => clone(actual), save: async () => undefined,
+      snapshot: async () => createDefaultState(), replace: async () => undefined,
+    };
+    let error: unknown;
+    try { await importBackup(exportBackup(incoming), repo); } catch (caught) { error = caught; }
+    expect(error).toBeInstanceOf(BackupCommittedStateError);
+    const committed = error as BackupCommittedStateError;
+    expect(committed.kind).toBe('conflict');
+    expect(committed.state).toEqual(actual);
+    committed.state.notes.otherWindow = 'mutated-error';
+    expect(actual.notes.otherWindow).toBe('newer');
   });
 });
