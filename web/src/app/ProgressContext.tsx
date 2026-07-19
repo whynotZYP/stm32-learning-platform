@@ -83,8 +83,20 @@ export function ProgressProvider({ repository, children }: { repository: Progres
 
   const recordEvidenceBatch = useCallback((records: EvidenceRecord[]) => {
     const incoming = records.map((record) => clone(record));
-    return enqueue(async () => save({ ...clone(stateRef.current!), evidence: [...stateRef.current!.evidence, ...incoming], updatedAt: new Date().toISOString() }), false);
-  }, [enqueue, save]);
+    return enqueue(async () => {
+      const incomingIds = incoming.map((record) => record.id);
+      const existingIds = new Set(stateRef.current!.evidence.map((record) => record.id));
+      const invalid = incomingIds.length === 0
+        || incomingIds.some((id) => !id.trim())
+        || new Set(incomingIds).size !== incomingIds.length
+        || incomingIds.some((id) => existingIds.has(id));
+      if (invalid) {
+        showError('证据记录为空、重复或与已有记录冲突，未保存本次提交。');
+        return false;
+      }
+      return save({ ...clone(stateRef.current!), evidence: [...stateRef.current!.evidence, ...incoming], updatedAt: new Date().toISOString() });
+    }, false);
+  }, [enqueue, save, showError]);
   const recordEvidence = useCallback(async (record: EvidenceRecord) => { await recordEvidenceBatch([record]); }, [recordEvidenceBatch]);
   const saveNote = useCallback((lessonId: string, markdown: string) => enqueue(async () => { await save({ ...clone(stateRef.current!), notes: { ...stateRef.current!.notes, [lessonId]: markdown }, updatedAt: new Date().toISOString() }); }, undefined), [enqueue, save]);
   const setCurrentWeek = useCallback((week: number) => enqueue(async () => {

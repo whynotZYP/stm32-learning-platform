@@ -43,6 +43,58 @@ function Probe({ onChange }: { onChange: (value: ProgressContextValue) => void }
 }
 
 describe('ProgressProvider', () => {
+  it('rejects an empty evidence batch without saving or changing progress, then clears the error after a valid batch', async () => {
+    const repository = createMemoryRepository();
+    const { progress } = await renderProgress(repository);
+    const before = structuredClone(progress().state);
+    let rejected = true;
+    await act(async () => { rejected = await progress().recordEvidenceBatch([]); });
+    expect(rejected).toBe(false);
+    expect(repository.saved).toHaveLength(0);
+    expect(progress().state).toEqual(before);
+    expect(progress().error).toBe('证据记录为空、重复或与已有记录冲突，未保存本次提交。');
+    let recovered = false;
+    await act(async () => { recovered = await progress().recordEvidenceBatch([evidence]); });
+    expect(recovered).toBe(true);
+    expect(repository.saved).toHaveLength(1);
+    expect(progress().error).toBeUndefined();
+  });
+
+  it('rejects duplicate IDs within one evidence batch without saving', async () => {
+    const repository = createMemoryRepository();
+    const { progress } = await renderProgress(repository);
+    let saved = true;
+    await act(async () => { saved = await progress().recordEvidenceBatch([evidence, { ...evidence }]); });
+    expect(saved).toBe(false);
+    expect(repository.saved).toHaveLength(0);
+    expect(progress().state.evidence).toEqual([]);
+    expect(progress().error).toBe('证据记录为空、重复或与已有记录冲突，未保存本次提交。');
+  });
+
+  it('rejects an evidence ID that already exists in committed progress', async () => {
+    const repository = createMemoryRepository();
+    const { progress } = await renderProgress(repository);
+    await act(async () => { await progress().recordEvidenceBatch([evidence]); });
+    let saved = true;
+    await act(async () => { saved = await progress().recordEvidenceBatch([{ ...evidence }]); });
+    expect(saved).toBe(false);
+    expect(repository.saved).toHaveLength(1);
+    expect(progress().state.evidence).toEqual([evidence]);
+  });
+
+  it('serializes concurrent same-ID batches so only the first can save', async () => {
+    const repository = createMemoryRepository();
+    const { progress } = await renderProgress(repository);
+    let first!: Promise<boolean>;
+    let second!: Promise<boolean>;
+    act(() => { first = progress().recordEvidenceBatch([evidence]); second = progress().recordEvidenceBatch([{ ...evidence }]); });
+    let results!: boolean[];
+    await act(async () => { results = await Promise.all([first, second]); });
+    expect(results).toEqual([true, false]);
+    expect(repository.saved).toHaveLength(1);
+    expect(progress().state.evidence).toEqual([evidence]);
+  });
+
   it('persists an evidence batch atomically and isolates its caller records', async () => {
     const repository = createMemoryRepository();
     const second = { ...evidence, id: 'evidence-2', tagIds: ['foundation.binary'] };
