@@ -1,0 +1,8 @@
+{
+  "schemaVersion":1,"id":"assessment-w22","lessonId":"w22-reliability-storage","items":[
+    {"id":"w22-c","kind":"concept","prompt":"比较 Sleep、Stop、Standby、IWDG、WWDG 与 Flash 页更新的故障边界。","tagIds":["pwr.low-power","wdg.recovery","flash.persistence"],"maxScore":25,"rubric":["状态保留区别正确","复位与持久化边界正确"]},
+    {"id":"w22-k","kind":"configuration","prompt":"解释 Stop 后恢复系统时钟、复位标志先捕获后清除以及链接脚本保留页。","tagIds":["pwr.low-power","wdg.recovery","flash.persistence"],"maxScore":25,"rubric":["时钟恢复顺序正确","0x0800FC00 被保留"]},
+    {"id":"w22-p","kind":"practical","prompt":"用显式一次性请求运行低功耗、进展喂狗和 Flash 写入恢复故障注入。","tagIds":["pwr.low-power","wdg.recovery","flash.persistence"],"maxScore":35,"rubric":["无自动 Standby 或循环擦写","恢复失败分类正确","最终重新 lock"]},
+    {"id":"w22-r","kind":"reflection","prompt":"说明为何 mass erase、option bytes 和未测掉电恢复不能作为本实验捷径。","tagIds":["flash.persistence"],"maxScore":15,"rubric":["安全边界明确","物理结果不伪造"]}
+  ]
+}

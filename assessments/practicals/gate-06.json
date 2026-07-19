@@ -1,0 +1,14 @@
+{
+  "schemaVersion":1,
+  "id":"gate-06",
+  "phase":6,
+  "title":"阶段六：可靠性综合项目与能力迁移",
+  "lessonIds":["w21-rtc-bkp","w22-reliability-storage","w23-capstone","w24-mastery-transfer"],
+  "requiredTagIds":["gpio.output-mode","exti.event-flow","nvic.priority","tim.timebase","adc.sampling","dma.transfer","usart.physical-frame","i2c.protocol","spi.protocol","rtc.time","pwr.low-power","wdg.recovery","flash.persistence"],
+  "items":[
+    {"id":"g6-c","kind":"concept","prompt":"解释全部十三个核心标签在 capstone 故障链中的作用；总门槛要求 phase average >= 75。","tagIds":["gpio.output-mode","exti.event-flow","nvic.priority","tim.timebase","adc.sampling","dma.transfer","usart.physical-frame","i2c.protocol","spi.protocol","rtc.time","pwr.low-power","wdg.recovery","flash.persistence"],"maxScore":25,"rubric":["每个 tag >= 70","概念链可复述"]},
+    {"id":"g6-k","kind":"configuration","prompt":"审计 CubeMX、总线、RTC、低功耗、看门狗和两个保留 Flash 页的配置。","tagIds":["rtc.time","pwr.low-power","wdg.recovery","flash.persistence","i2c.protocol","spi.protocol"],"maxScore":25,"rubric":["配置可追溯","危险操作被排除"]},
+    {"id":"g6-p","kind":"practical","prompt":"完成 reliable logger 演示并提交 capstone evidence bundle；practical >= 70 才通过。","tagIds":["adc.sampling","dma.transfer","usart.physical-frame","i2c.protocol","spi.protocol","rtc.time","pwr.low-power","wdg.recovery","flash.persistence"],"maxScore":35,"rubric":["六模块真实运行","损坏记录可跳过","只在完整进展后喂狗","物理观察待实机验证"]},
+    {"id":"g6-r","kind":"reflection","prompt":"把构建、设备、人工证据分开，列出 pending physical / 待实机验证 清单并选择扩展路线。","tagIds":["debug.observation"],"maxScore":15,"rubric":["evidence bundle 可审计","未验证结果不计通过"]}
+  ]
+}

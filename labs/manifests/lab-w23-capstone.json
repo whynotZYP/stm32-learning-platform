@@ -1,0 +1,14 @@
+{
+  "schemaVersion":1,"id":"lab-w23-capstone","lessonId":"w23-capstone","title":"六模块可靠数据记录器",
+  "hardware":["STM32F103C8T6","MPU6050","W25Q64","光敏模拟模块","温度模拟模块","USB 串口"],
+  "wiringChecklist":["断电后把 MPU6050 接到 I2C1、W25Q64 接到 SPI2，模拟量接 PA0/PA1，全部使用 3.3 V 并共地。","复核 W25Q64 CS 为 PB12、USART1 为 PA9/PA10，确认外部 Flash 保留日志区预先擦除后再上电。"],
+  "safety":["连接传感器、存储器或串口前必须断电，禁止 5 V 信号直接进入 STM32 与 W25Q64。"],
+  "expectedObservations":["App 每次只推进 SAMPLE、STORE、DISPLAY 一个状态，无 HAL_Delay；三步完成后才允许喂狗。","W25Q64 保存带 magic/version/length/checksum 的 UTC 记录，扫描时跳过损坏记录。"],
+  "faultTasks":["编译 mutation 让 Health 只检查 sample 并确认测试拒绝；真实拔掉 MPU6050、破坏日志与复电恢复待实机验证。"],
+  "detectionChecks":[
+    {"mode":"automatic","action":"运行真实六模块主机行为和 watchdog mutation 测试","expectedEvidence":"生产源码测试、mutation 失败和 ELF","limitation":"不证明 I2C SPI ADC RTC UART 物理链路","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备采样并向 W25Q64 追加记录和串口 health","expectedEvidence":"待实机验证：UTC 数据与重启扫描日志","limitation":"待实机验证，当前无真实外设数据","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"人工核对接线并注入掉电和损坏记录故障","expectedEvidence":"待实机验证：接线图、故障步骤和恢复结果","limitation":"待实机验证，物理容错需现场观察","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ],
+  "firmwareProject":"firmware/lessons/w23-capstone"
+}

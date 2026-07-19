@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "w21-rtc-bkp",
+  "week": 21,
+  "title": "RTC、Unix UTC 与备份域",
+  "estimatedMinutes": 420,
+  "sourceCourseIds": ["41", "42", "43"],
+  "prerequisiteTagIds": ["tim.timebase", "c.memory"],
+  "targetTagIds": ["rtc.time"],
+  "objectives": ["解释 LSE、VBAT、RTC 计数器与 BKP 标记的职责边界", "实现不破坏备份域的首次初始化和 high-low-high 一致读取", "把 RTC 原始计数明确解释为 Unix UTC 秒数"],
+  "conceptPath": "curriculum/weeks/w21.md",
+  "labIds": ["lab-w21-rtc-bkp"],
+  "assessmentId": "assessment-w21",
+  "safety": ["改接 LSE 晶振、VBAT 或主电源前必须断电，VBAT 不得反接或超过器件手册额定值。"],
+  "detectionChecks": [
+    {"mode":"automatic","action":"编译固件并运行 RTC 一致读取主机行为测试","expectedEvidence":"ELF、测试通过记录和 mutation 失败记录","limitation":"不能证明板上 LSE 起振或 VBAT 续时","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备上读取 RTC、BKP 标记并执行主电源重启","expectedEvidence":"待实机验证：重启前后 UTC 单调及标记保留日志","limitation":"待实机验证，当前无开发板串口和断电观测","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"人工断开主电源并用万用表确认 VBAT 极性电压","expectedEvidence":"待实机验证：断电时长、VBAT 电压和复电时间差","limitation":"待实机验证，物理续时不能由构建结果替代","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

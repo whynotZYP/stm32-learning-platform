@@ -1,0 +1,8 @@
+{
+  "schemaVersion":1,"id":"assessment-w23","lessonId":"w23-capstone","items":[
+    {"id":"w23-c","kind":"concept","prompt":"解释 Sensors、Storage、Clock、Display、Health、App 六模块的职责与依赖方向。","tagIds":["system.integration"],"maxScore":25,"rubric":["边界清晰","没有循环职责"]},
+    {"id":"w23-k","kind":"configuration","prompt":"说明 ADC、MPU6050 I2C、W25Q64 SPI、RTC UTC 和 USART health 的引脚与时序选择。","tagIds":["system.integration"],"maxScore":25,"rubric":["真实 HAL 适配完整","总线配置安全"]},
+    {"id":"w23-p","kind":"practical","prompt":"运行非阻塞记录器，跳过 checksum 损坏记录并证明三步进展后才喂狗。","tagIds":["system.integration"],"maxScore":35,"rubric":["无 HAL_Delay","W25Q64 真实追加","mutation 被拒绝"]},
+    {"id":"w23-r","kind":"reflection","prompt":"记录自动测试能证明什么，以及外设通信、掉电与传感器准确度仍缺什么证据。","tagIds":["system.integration"],"maxScore":15,"rubric":["证据分层明确","待实机列表完整"]}
+  ]
+}

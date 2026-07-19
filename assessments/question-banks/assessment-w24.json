@@ -1,0 +1,8 @@
+{
+  "schemaVersion":1,"id":"assessment-w24","lessonId":"w24-mastery-transfer","items":[
+    {"id":"w24-c","kind":"concept","prompt":"复述十三个核心标签怎样共同支撑可靠数据记录器。","tagIds":["system.integration"],"maxScore":25,"rubric":["关系完整","能指出薄弱标签"]},
+    {"id":"w24-k","kind":"configuration","prompt":"审计课程、固件、链接保留区与外设适配配置是否可追溯。","tagIds":["system.integration"],"maxScore":25,"rubric":["路径和证据可追溯","没有虚构固件"]},
+    {"id":"w24-p","kind":"practical","prompt":"提交最终 capstone evidence bundle 并按 gate06 阈值完成评分。","tagIds":["system.integration"],"maxScore":35,"rubric":["自动证据齐全","设备与人工项诚实标记"]},
+    {"id":"w24-r","kind":"reflection","prompt":"依据已掌握标签选择一个扩展路线并列出尚未掌握内容。","tagIds":["system.integration"],"maxScore":15,"rubric":["路线依据明确","不把入门等同掌握"]}
+  ]
+}

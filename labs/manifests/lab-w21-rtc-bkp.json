@@ -1,0 +1,14 @@
+{
+  "schemaVersion":1,"id":"lab-w21-rtc-bkp","lessonId":"w21-rtc-bkp","title":"LSE、VBAT 与 Unix UTC 保持实验",
+  "hardware":["STM32F103C8T6","ST-LINK","32.768 kHz LSE 晶振","3 V 后备电池","万用表"],
+  "wiringChecklist":["断电后确认板载 LSE 晶振连接正确，VBAT 正负极和电压符合数据手册。","串口或调试器只用于读取 UTC 与 BKP 标记，不在复电时强制重置备份域。"],
+  "safety":["所有 LSE、VBAT 和电源接线变更前必须断电，禁止 VBAT 反接或带电短路。"],
+  "expectedObservations":["首次启动写入 Unix UTC 与 BKP 标记，普通复位不重新初始化。","待实机验证：主电源断开但 VBAT 保持时，复电后 UTC 按断电时长前进。"],
+  "faultTasks":["在主机 fixture 注入 high-low-high 跨秒变化并确认返回第二个稳定秒；物理断电观察保持待实机验证。"],
+  "detectionChecks":[
+    {"mode":"automatic","action":"构建并运行 BKP 标记与跨秒稳定读取测试","expectedEvidence":"ELF 和主机测试通过记录","limitation":"不证明 LSE 或 VBAT 实际工作","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"板上记录复位前后 UTC 与 BKP 寄存器数值","expectedEvidence":"待实机验证：设备日志与时间差","limitation":"待实机验证，当前没有设备日志","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"断开主电源并人工测量 VBAT 后等待复电","expectedEvidence":"待实机验证：万用表读数和断电时长","limitation":"待实机验证，必须由真实仪表确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ],
+  "firmwareProject":"firmware/lessons/w21-rtc-bkp"
+}

@@ -1,0 +1,8 @@
+{
+  "schemaVersion":1,"id":"assessment-w21","lessonId":"w21-rtc-bkp","items":[
+    {"id":"w21-c","kind":"concept","prompt":"解释 LSE、VBAT、RTC 计数器、BKP 标记和 Unix UTC 的关系。","tagIds":["rtc.time"],"maxScore":25,"rubric":["时钟源和备份域边界正确","UTC 含义明确"]},
+    {"id":"w21-k","kind":"configuration","prompt":"说明为什么选择 LSE、32767 预分频和不重置备份域的 CubeMX 配置。","tagIds":["rtc.time"],"maxScore":25,"rubric":["分频推导正确","没有破坏备份域"]},
+    {"id":"w21-p","kind":"practical","prompt":"实现 BKP 首次标记与 high-low-high 稳定读，并演示跨秒 fixture。","tagIds":["rtc.time"],"maxScore":35,"rubric":["生产逻辑通过主机测试","跨秒结果正确","实机项诚实待验证"]},
+    {"id":"w21-r","kind":"reflection","prompt":"区分自动构建证据与 LSE 起振、VBAT 断电续时的物理证据。","tagIds":["rtc.time"],"maxScore":15,"rubric":["证据边界清楚","列出待实机验证"]}
+  ]
+}

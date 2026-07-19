@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "w22-reliability-storage",
+  "week": 22,
+  "title": "低功耗、看门狗与内部 Flash 可靠性",
+  "estimatedMinutes": 480,
+  "sourceCourseIds": ["44", "45", "46", "47", "48", "49"],
+  "prerequisiteTagIds": ["rtc.time", "exti.event-flow", "debug.observation", "c.memory", "mcu.memory-map"],
+  "targetTagIds": ["pwr.low-power", "wdg.recovery", "flash.persistence"],
+  "objectives": ["比较 Sleep、Stop、Standby 的状态保留与唤醒边界", "用真实进展门控 IWDG 和 WWDG 的一次性刷新", "实现保留页、半字对齐、回读和失败恢复的 Flash 更新"],
+  "conceptPath": "curriculum/weeks/w22.md",
+  "labIds": ["lab-w22-reliability-storage"],
+  "assessmentId": "assessment-w22",
+  "safety": ["改接唤醒脚或供电前必须断电；内部 Flash 实验只允许保留页，禁止 mass erase 和 option bytes 操作。"],
+  "detectionChecks": [
+    {"mode":"automatic","action":"编译并运行电源请求、看门狗门控和 Flash 恢复测试","expectedEvidence":"三个状态机测试、恢复失败分类和 ELF","limitation":"不能测量真实电流或复位时序","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备按显式请求分别进入低功耗并触发看门狗演示","expectedEvidence":"待实机验证：唤醒标志、复位原因和串口日志","limitation":"待实机验证，当前不声明板上唤醒或复位成功","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"人工测量三种模式电流并执行写入中断电故障注入","expectedEvidence":"待实机验证：电流表读数和断电恢复记录","limitation":"待实机验证，真实功耗与掉电恢复需人工设备","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

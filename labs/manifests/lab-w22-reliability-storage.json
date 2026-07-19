@@ -1,0 +1,14 @@
+{
+  "schemaVersion":1,"id":"lab-w22-reliability-storage","lessonId":"w22-reliability-storage","title":"显式低功耗、看门狗与保留页事务",
+  "hardware":["STM32F103C8T6","ST-LINK","串口适配器","万用表或电流表","可控电源"],
+  "wiringChecklist":["断电后连接唤醒输入、调试器和电流表，复核 3.3 V 与共地。","确认链接脚本只保留 0x0800FC00 最后一页，测试程序不得执行 mass erase 或 option bytes。"],
+  "safety":["接线和串接电流表前必须断电；Standby、Flash 写入和 watchdog 只能由调试器显式请求一次。"],
+  "expectedObservations":["Sleep 返回无需恢复系统时钟，Stop 返回后调用 SystemClock_Config，Standby 通过 SB/WU 标志解释启动。","Flash 首次写失败而恢复成功返回 ERROR；恢复或恢复回读失败返回 RESTORE_FAILED，并始终重新 lock。"],
+  "faultTasks":["注入 program 失败与 restore 失败，确认分类不同；真实写入中断电测试保持待实机验证。"],
+  "detectionChecks":[
+    {"mode":"automatic","action":"运行电源请求、进展门控和 Flash 双故障测试","expectedEvidence":"状态分类、mutation 结果和 ELF","limitation":"不测真实电流和掉电窗口","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"板上逐次发出 Sleep Stop Standby 与 watchdog 请求","expectedEvidence":"待实机验证：标志、复位原因与时钟日志","limitation":"待实机验证，当前无设备输出","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"人工测量功耗并在保留页写入期间切断电源","expectedEvidence":"待实机验证：电流和恢复读回记录","limitation":"待实机验证，需要可控电源和仪表","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ],
+  "firmwareProject":"firmware/lessons/w22-pwr-wdg-flash"
+}

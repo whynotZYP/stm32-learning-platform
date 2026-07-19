@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "w24-mastery-transfer",
+  "week": 24,
+  "title": "总实践、证据审计与能力迁移",
+  "estimatedMinutes": 480,
+  "sourceCourseIds": [],
+  "prerequisiteTagIds": ["system.integration"],
+  "targetTagIds": ["system.integration"],
+  "objectives": ["按 gate06 阈值审计全部核心标签和综合项目证据", "把自动、设备和人工证据分开并列出 pending physical", "依据已掌握标签选择后续路线而不夸大能力"],
+  "conceptPath": "curriculum/weeks/w24.md",
+  "labIds": ["lab-w24-final-practical"],
+  "assessmentId": "assessment-w24",
+  "safety": ["最终演示改接任何模块前必须断电，所有物理结果在真实观察前都保持待实机验证。"],
+  "extensionPaths": ["curriculum/extensions/freertos.md", "curriculum/extensions/control.md", "curriculum/extensions/protocols.md", "curriculum/extensions/device-drivers.md", "curriculum/extensions/low-power.md", "curriculum/extensions/digital-logic-fpga-pla.md"],
+  "detectionChecks": [
+    {"mode":"automatic","action":"运行完整内容、类型、前端和三固件构建验证","expectedEvidence":"测试报告、三个 ELF 和证据清单","limitation":"自动结果不等于开发板物理通过","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备运行最终实践并导出采样存储显示健康日志","expectedEvidence":"待实机验证：可追溯设备日志和复位原因","limitation":"待实机验证，当前不声明最终实践通过","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"人工复核接线功耗掉电恢复并现场复述设计取舍","expectedEvidence":"待实机验证：评分表、照片和口头复述记录","limitation":"待实机验证，人工证据不能预先生成","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

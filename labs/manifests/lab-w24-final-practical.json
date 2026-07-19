@@ -1,0 +1,13 @@
+{
+  "schemaVersion":1,"id":"lab-w24-final-practical","lessonId":"w24-mastery-transfer","title":"最终实践与证据包审计",
+  "hardware":["STM32F103C8T6","综合项目全套模块","ST-LINK","USB 串口","万用表"],
+  "wiringChecklist":["断电后按第 23 周清单复核所有模块、电压与共地，再进行最终实践。","准备自动构建、设备日志、人工观察三类独立证据，缺失项写入 pending physical。"],
+  "safety":["任何接线、掉电或功耗测试前必须断电并复核量程，未观察的物理结果不得记为通过。"],
+  "expectedObservations":["phase average >= 75、每个 tag >= 70、practical >= 70 且 capstone evidence bundle 完整时才通过。","所有未完成断电、功耗、VBAT、外设通信观察留在 pending physical。"],
+  "faultTasks":["移除一项设备证据或降低任一标签分数，确认 gate06 拒绝通过并指向补救项。"],
+  "detectionChecks":[
+    {"mode":"automatic","action":"执行全量内容测试类型检查前端构建和三个固件构建","expectedEvidence":"机器生成报告和三个 ELF","limitation":"自动通过不代表最终开发板通过","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备运行最终场景并导出完整健康和存储日志","expectedEvidence":"待实机验证：可追溯设备证据包","limitation":"待实机验证，当前没有设备证据","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"人工复核安全接线功耗掉电恢复和现场复述","expectedEvidence":"待实机验证：评分表、照片和签字记录","limitation":"待实机验证，必须现场完成","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}
