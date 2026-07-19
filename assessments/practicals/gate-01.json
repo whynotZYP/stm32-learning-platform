@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "gate-01",
+  "phase": 1,
+  "title": "阶段一综合实践：从回路到可调试 GPIO 工程",
+  "lessonIds": ["w01-foundations", "w02-c-language", "w03-first-project", "w04-gpio-output"],
+  "requiredTagIds": ["foundation.electricity", "foundation.binary", "c.control-flow", "c.memory", "mcu.memory-map", "toolchain.build-debug", "gpio.output-mode"],
+  "items": [
+    { "id": "gate-01-concept", "kind": "concept", "prompt": "从电流回路、二进制 bit 到 GPIO 输出级，解释 LED 控制信号怎样产生物理结果。", "tagIds": ["foundation.electricity", "foundation.binary", "gpio.output-mode"], "maxScore": 25, "rubric": ["跨层解释连续", "不混淆电压、电流和逻辑值", "能回答追问"] },
+    { "id": "gate-01-configuration", "kind": "configuration", "prompt": "从空目录新建一个全新 LED CubeMX CMake 项目，逐项解释每个 CubeMX 选择、时钟配置和引脚模式的原因。", "tagIds": ["toolchain.build-debug", "mcu.memory-map", "gpio.output-mode"], "maxScore": 25, "rubric": ["目标器件和时钟正确", "Serial Wire 与 HAL/CMake 选择合理", "每个选择都有可验证理由"] },
+    { "id": "gate-01-practical", "kind": "practical", "prompt": "构建、烧录新工程，并根据寄存器、电压和电流路径修复一个考官注入的 GPIO 配置或接线故障。", "tagIds": ["foundation.electricity", "c.control-flow", "toolchain.build-debug", "gpio.output-mode"], "maxScore": 35, "rubric": ["安全操作且先断电改线", "构建与实机证据分开", "诊断步骤可复现", "修复后重新验证"] },
+    { "id": "gate-01-reflection", "kind": "reflection", "prompt": "整理并提交一篇 Markdown 学习笔记到 Git，包含 CubeMX 决策、代码解释、故障证据和自己的复述。", "tagIds": ["c.memory", "toolchain.build-debug", "gpio.output-mode"], "maxScore": 15, "rubric": ["Markdown 结构完整", "Git commit 信息能说明学习内容", "证据可追溯", "列出仍待实机验证项"] }
+  ]
+}

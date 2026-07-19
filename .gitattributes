@@ -1,0 +1,6 @@
+# Preserve STM32Cube package files byte-for-byte; upstream headers contain intentional padding.
+firmware/lessons/*/Drivers/** whitespace=-trailing-space
+firmware/lessons/*/.mxproject whitespace=-trailing-space
+firmware/lessons/*/Core/** whitespace=-trailing-space
+firmware/lessons/*/cmake/stm32cubemx/** whitespace=-trailing-space
+firmware/lessons/*/startup_*.s whitespace=-trailing-space

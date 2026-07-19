@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "w04-gpio-output",
+  "week": 4,
+  "title": "GPIO 输出、LED 与蜂鸣器",
+  "estimatedMinutes": 450,
+  "sourceCourseIds": ["05", "06-1", "06-2"],
+  "prerequisiteTagIds": ["foundation.electricity", "mcu.memory-map", "toolchain.build-debug"],
+  "targetTagIds": ["gpio.output-mode"],
+  "objectives": [
+    "从输出级晶体管和电流路径解释推挽与开漏模式",
+    "解释 GPIO speed 控制边沿驱动而不是闪烁速度",
+    "用 HAL 控制两个 LED 交替和有源蜂鸣器启停",
+    "观察 ODR、BSRR、IDR 并说明 BSRR 如何避免读改写竞争"
+  ],
+  "conceptPath": "curriculum/weeks/w04.md",
+  "labIds": ["lab-w04-gpio-output"],
+  "assessmentId": "assessment-w04",
+  "safety": [
+    "改变 LED、蜂鸣器或跳线连接前必须断电，首次上电前逐线复核。",
+    "STM32 GPIO 使用 3.3 V 逻辑，禁止把 5 V 直接送入普通 GPIO。",
+    "每只 LED 必须串联 1 kΩ 限流电阻；未知电流的蜂鸣器必须经驱动模块或三极管，不能由 GPIO 直接带负载。",
+    "PC13 板载 LED 与 8 MHz 晶振只是常见最小板假设，先核对丝印或原理图；不匹配时改用文中外接方案。"
+  ],
+  "detectionChecks": [
+    {
+      "mode": "automatic",
+      "action": "编译链接 GPIO HAL 工程并检查指定 App API",
+      "expectedEvidence": "构建日志、ELF 和接口检查结果",
+      "limitation": "构建成功不能证明 LED 发光或蜂鸣器发声",
+      "applicable": true,
+      "evidenceSource": "simulator",
+      "physicalHardware": false
+    },
+    {
+      "mode": "semi-automatic",
+      "action": "实机运行后由调试器读取 ODR 并检查输出电平变化",
+      "expectedEvidence": "设备寄存器或回环电平变化记录",
+      "limitation": "设备数值不能证明人眼亮度或声音强弱",
+      "applicable": true,
+      "evidenceSource": "device",
+      "physicalHardware": true
+    },
+    {
+      "mode": "manual",
+      "action": "观察两只 LED 交替与蜂鸣器启停并复述电流路径",
+      "expectedEvidence": "人工确认、接线照片和复述笔记",
+      "limitation": "物理现象必须由学习者现场确认",
+      "applicable": true,
+      "evidenceSource": "manual",
+      "physicalHardware": true
+    }
+  ]
+}

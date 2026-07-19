@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "assessment-w03",
+  "lessonId": "w03-first-project",
+  "items": [
+    { "id": "w03-concept", "kind": "concept", "prompt": "解释 Cortex-M3、STM32F103、存储器映射和 GPIO 寄存器地址之间的关系。", "tagIds": ["mcu.memory-map"], "maxScore": 25, "answer": "Cortex-M3 是内核，STM32F103 把内核、Flash、RAM 和外设集成；内存映射让外设寄存器可按固定地址访问。", "rubric": ["内核与芯片不混淆", "解释固定地址如何访问外设"] },
+    { "id": "w03-configuration", "kind": "configuration", "prompt": "逐项说明选择 STM32F103C8Tx、HSE、PLL×9、72 MHz、Serial Wire、HAL 和 CMake 的理由。", "tagIds": ["toolchain.build-debug", "mcu.memory-map"], "maxScore": 25, "rubric": ["每项选择有原因", "HSE 假设已核对", "APB1 不超过 36 MHz"] },
+    { "id": "w03-practical", "kind": "practical", "prompt": "构建、烧录并在 main 停下，观察 RCC 与 GPIO 寄存器，再诊断一次错误调试器或错误目标。", "tagIds": ["toolchain.build-debug", "debug.observation"], "maxScore": 35, "rubric": ["ELF 构建证据完整", "实机证据与构建证据分开", "能依据工具输出定位故障"] },
+    { "id": "w03-reflection", "kind": "reflection", "prompt": "不用看资料复述 .c 源码到 object、ELF、Flash 再到 CPU 执行的链路。", "tagIds": ["toolchain.build-debug"], "maxScore": 15, "rubric": ["顺序正确", "每个工具角色明确", "说明生成代码与 App 编辑边界"] }
+  ]
+}

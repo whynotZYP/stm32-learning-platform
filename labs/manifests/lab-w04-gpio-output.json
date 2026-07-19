@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "lab-w04-gpio-output",
+  "lessonId": "w04-gpio-output",
+  "title": "GPIO 驱动两只 LED 与有源蜂鸣器",
+  "hardware": ["STM32F103C8T6 最小系统板", "ST-LINK", "面包板", "两只 LED", "1 kΩ 电阻", "有源蜂鸣器模块或三极管驱动", "杜邦线"],
+  "wiringChecklist": [
+    "保持断电，先核对 PC13 板载 LED；若板型不确定，用 PC13 → LED 阴极、LED 阳极 → 1 kΩ → 3.3 V 的外接低有效方案。",
+    "保持断电，将 PB0 → 1 kΩ → 第二只 LED 阳极，LED 阴极 → GND，形成高有效外接 LED。",
+    "保持断电，将 PB1 接有源蜂鸣器模块的信号输入；裸蜂鸣器或电流不明负载必须经三极管驱动。",
+    "确认开发板、外接电路和 ST-LINK 共地，供电只选一种，普通 GPIO 不接 5 V。",
+    "上电前逐线复核 PC13、PB0、PB1，不要仅凭常见最小板布局猜测板载引脚。"
+  ],
+  "safety": [
+    "改变 LED、蜂鸣器或任何跳线前必须断电。",
+    "GPIO 只使用 3.3 V 逻辑，禁止 5 V 直接进入普通 GPIO。",
+    "LED 必须串联 1 kΩ 限流电阻；蜂鸣器额定电流不明时必须使用驱动模块或三极管，不能让 GPIO 直接承受负载电流。"
+  ],
+  "expectedObservations": [
+    "PC13 LED 与 PB0 LED 每 500 ms 交替，蜂鸣器随 PB0 LED 启停。",
+    "调试器中 GPIOC ODR bit13 与 GPIOB ODR bit0/bit1 按程序变化。",
+    "HAL_GPIO_WritePin 最终写入 BSRR，而 HAL_GPIO_ReadPin 读取 IDR；三者含义不同。"
+  ],
+  "faultTasks": [
+    "保持断电，把 PB0 临时配置为开漏且不接上拉，或断开 LED/蜂鸣器必需电流路径；重新上电后用 ODR、引脚电压和回路图定位，再断电修复。"
+  ],
+  "detectionChecks": [
+    {
+      "mode": "automatic",
+      "action": "编译工程并检查 App GPIO 接口存在",
+      "expectedEvidence": "构建日志、ELF 和接口检查",
+      "limitation": "构建不能证明 LED 亮或蜂鸣器响",
+      "applicable": true,
+      "evidenceSource": "simulator",
+      "physicalHardware": false
+    },
+    {
+      "mode": "semi-automatic",
+      "action": "实机运行并由调试器读取 ODR 或回环电平",
+      "expectedEvidence": "设备寄存器或电平变化记录",
+      "limitation": "寄存器变化不能替代亮度与声音观察",
+      "applicable": true,
+      "evidenceSource": "device",
+      "physicalHardware": true
+    },
+    {
+      "mode": "manual",
+      "action": "观察两只 LED 和蜂鸣器并解释晶体管电流路径",
+      "expectedEvidence": "人工现象确认、照片和复述",
+      "limitation": "物理现象必须现场人工确认",
+      "applicable": true,
+      "evidenceSource": "manual",
+      "physicalHardware": true
+    }
+  ],
+  "firmwareProject": "firmware/lessons/w04-gpio-output"
+}

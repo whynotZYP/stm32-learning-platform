@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "w03-first-project",
+  "week": 3,
+  "title": "STM32 工具链与第一个工程",
+  "estimatedMinutes": 450,
+  "sourceCourseIds": ["05", "06-1"],
+  "prerequisiteTagIds": ["c.control-flow", "c.memory"],
+  "targetTagIds": ["mcu.memory-map", "toolchain.build-debug", "debug.observation"],
+  "objectives": [
+    "说明 Cortex-M3、STM32F103C8T6、存储器和外设寄存器的关系",
+    "在 CubeMX 中创建 CMake 工程并解释 8 MHz HSE 到 72 MHz 的时钟路径",
+    "叙述源文件到 object、ELF、烧录和 CPU 执行的完整链条",
+    "用 ST-LINK 在 main 停下并查看 RCC 与 GPIO 寄存器"
+  ],
+  "conceptPath": "curriculum/weeks/w03.md",
+  "labIds": ["lab-w03-first-project"],
+  "assessmentId": "assessment-w03",
+  "safety": [
+    "连接或移动 ST-LINK、LED 跳线前必须断电，并确认 SWDIO、SWCLK、GND 对应。",
+    "开发板和外设均按 3.3 V 逻辑连接，禁止把 5 V 直接送入普通 GPIO。",
+    "PC13 板载 LED 和 8 MHz HSE 都是常见最小板假设，必须先按丝印或原理图核对。"
+  ],
+  "detectionChecks": [
+    {
+      "mode": "automatic",
+      "action": "使用 CMake 和 Ninja 编译 CubeMX 生成的工程",
+      "expectedEvidence": "构建日志和链接生成的 ELF",
+      "limitation": "编译成功只证明语法和链接，不证明烧录、时钟或 LED 实物工作",
+      "applicable": true,
+      "evidenceSource": "simulator",
+      "physicalHardware": false
+    },
+    {
+      "mode": "semi-automatic",
+      "action": "用 ST-LINK 烧录并在 main 断点读取 RCC 与 GPIO 寄存器",
+      "expectedEvidence": "调试器目标信息、断点和寄存器截图",
+      "limitation": "需要真实开发板、正确 SWD 接线和人工启动调试",
+      "applicable": true,
+      "evidenceSource": "device",
+      "physicalHardware": true
+    },
+    {
+      "mode": "manual",
+      "action": "按顺序复述源码到 CPU 执行并解释每个工具角色",
+      "expectedEvidence": "自己的流程图和复述笔记",
+      "limitation": "人工解释不能由一次构建成功替代",
+      "applicable": true,
+      "evidenceSource": "manual",
+      "physicalHardware": true
+    }
+  ]
+}

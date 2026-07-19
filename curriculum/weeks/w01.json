@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "w01-foundations",
+  "week": 1,
+  "title": "电学、面包板与数制",
+  "estimatedMinutes": 390,
+  "sourceCourseIds": [],
+  "prerequisiteTagIds": [],
+  "targetTagIds": ["foundation.electricity", "foundation.binary"],
+  "objectives": [
+    "用电势差、完整电流回路和电阻解释 LED 为什么发光",
+    "识别面包板电源轨并在断电状态下检查连接是否连续",
+    "计算 3.3 V 电源下串联 1 kΩ 电阻的 LED 电流",
+    "在二进制与十六进制之间转换并标出位编号"
+  ],
+  "conceptPath": "curriculum/weeks/w01.md",
+  "labIds": ["lab-w01-breadboard"],
+  "assessmentId": "assessment-w01",
+  "safety": [
+    "改变任何跳线、反接 LED 或断开电阻前必须先断电。",
+    "STM32 GPIO 只按 3.3 V 逻辑使用，禁止把 5 V 直接送入普通 GPIO。",
+    "LED 必须串联限流电阻，首次上电前逐点复核完整电流路径。"
+  ],
+  "detectionChecks": [
+    {
+      "mode": "automatic",
+      "action": "完成电流计算与二进制十六进制在线自测",
+      "expectedEvidence": "答案记录与自动判分结果",
+      "limitation": "只能证明计算与数制转换，不能证明实物接线安全",
+      "applicable": true,
+      "evidenceSource": "simulator",
+      "physicalHardware": false
+    },
+    {
+      "mode": "semi-automatic",
+      "action": "断电后用万用表通断档逐段检查面包板连接",
+      "expectedEvidence": "各段通断读数和检查表",
+      "limitation": "需要学习者移动表笔，读数不能证明 GPIO 已经上电运行",
+      "applicable": true,
+      "evidenceSource": "manual",
+      "physicalHardware": true
+    },
+    {
+      "mode": "manual",
+      "action": "画出完整回路并口述限流电阻的保护作用",
+      "expectedEvidence": "回路图与自己的复述笔记",
+      "limitation": "人工复述需按评分标准复核",
+      "applicable": true,
+      "evidenceSource": "manual",
+      "physicalHardware": true
+    }
+  ]
+}

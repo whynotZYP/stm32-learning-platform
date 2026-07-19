@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "assessment-w02",
+  "lessonId": "w02-c-language",
+  "items": [
+    { "id": "w02-concept", "kind": "concept", "prompt": "比较 uint8_t 与 int8_t 的范围，并解释相同 8 个 bit 为什么能得到不同数值。", "tagIds": ["foundation.binary", "c.control-flow"], "maxScore": 25, "answer": "位宽相同但解释规则不同；uint8_t 为 0..255，常见二补码 int8_t 为 -128..127。", "rubric": ["范围正确", "说明符号解释而非内存位数改变"] },
+    { "id": "w02-configuration", "kind": "configuration", "prompt": "写出设置 bit3、清除 bit3、测试 bit3 的 C 表达式，并说明每个掩码。", "tagIds": ["foundation.binary", "c.control-flow"], "maxScore": 25, "answer": "x |= 1u<<3；x &= ~(1u<<3)；(x & (1u<<3)) != 0u。", "rubric": ["三种表达式正确", "使用无符号常量", "能逐位解释"] },
+    { "id": "w02-practical", "kind": "practical", "prompt": "完成桌面程序并诊断把 == 写成 = 以及移位超出预定 bit 的两个受控故障。", "tagIds": ["c.control-flow", "c.memory"], "maxScore": 35, "rubric": ["编译器警告已开启", "测试能捕获错误", "解释根因而非只改答案"] },
+    { "id": "w02-reflection", "kind": "reflection", "prompt": "用一个结构体变量说明值、地址、指针和解引用的区别，并记录逐位追踪过程。", "tagIds": ["c.memory"], "maxScore": 15, "rubric": ["四个概念区分清楚", "示例与实际输出一致", "笔记记录易混点"] }
+  ]
+}

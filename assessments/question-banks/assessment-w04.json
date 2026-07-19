@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "assessment-w04",
+  "lessonId": "w04-gpio-output",
+  "items": [
+    { "id": "w04-concept", "kind": "concept", "prompt": "画出推挽与开漏输出级，解释高低电平电流路径以及为何开漏通常需要上拉。", "tagIds": ["gpio.output-mode", "foundation.electricity"], "maxScore": 25, "answer": "推挽能主动拉高和拉低；开漏只能主动拉低，释放时由外部上拉形成高电平。", "rubric": ["上下管路径正确", "开漏高电平来源正确", "不把 speed 当频率"] },
+    { "id": "w04-configuration", "kind": "configuration", "prompt": "说明 PC13、PB0、PB1 的模式、初始电平与极性选择，并比较 ODR、BSRR、IDR。", "tagIds": ["gpio.output-mode", "mcu.memory-map"], "maxScore": 25, "rubric": ["板型假设写清", "极性与电路一致", "三个寄存器用途正确"] },
+    { "id": "w04-practical", "kind": "practical", "prompt": "完成 LED 闪烁、两 LED 交替和蜂鸣器控制，并修复开漏无上拉或断路故障。", "tagIds": ["gpio.output-mode"], "maxScore": 35, "rubric": ["接线安全和限流正确", "提交设备与人工两类证据", "按寄存器和电流路径定位故障"] },
+    { "id": "w04-reflection", "kind": "reflection", "prompt": "解释引脚晶体管路径，并说明 BSRR 为什么能避免 ODR 读改写竞争。", "tagIds": ["gpio.output-mode", "mcu.memory-map"], "maxScore": 15, "rubric": ["说明原子置位复位", "给出中断并发示例", "笔记包含接线与故障证据"] }
+  ]
+}

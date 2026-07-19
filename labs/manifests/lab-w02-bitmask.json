@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "lab-w02-bitmask",
+  "lessonId": "w02-c-language",
+  "title": "桌面 C 位掩码与地址追踪",
+  "hardware": ["Windows 电脑", "VS Code", "C 编译器"],
+  "wiringChecklist": [
+    "本实验不连接开发板，确认 STM32 和外接跳线保持断电。",
+    "创建只在电脑运行的 C 文件，启用编译器警告并保存每次输出。",
+    "为 set、clear、test 三个函数各写至少两个断言，再打印结构体成员和值的地址。"
+  ],
+  "safety": [
+    "本周不为 GPIO 上电；若调整桌旁开发板接线，必须先断电。"
+  ],
+  "expectedObservations": [
+    "OR 掩码设置位、AND 与反掩码清除位、AND 掩码测试位。",
+    "结构体变量的值与使用 & 取得的地址是不同概念。",
+    "编译器对可疑赋值和超范围移位给出警告。"
+  ],
+  "faultTasks": [
+    "在受控副本中把 `==` 改成 `=` 并开启警告，再把掩码左移超过预定 bit，逐项说明输出为何改变。"
+  ],
+  "detectionChecks": [
+    {
+      "mode": "automatic",
+      "action": "编译运行位操作函数和断言测试",
+      "expectedEvidence": "零失败断言和编译日志",
+      "limitation": "桌面程序不代表 STM32 寄存器已被访问",
+      "applicable": true,
+      "evidenceSource": "simulator",
+      "physicalHardware": false
+    },
+    {
+      "mode": "semi-automatic",
+      "action": "从开发板自动读取位操作运行结果",
+      "expectedEvidence": "设备回传结果",
+      "limitation": "本周没有设备固件和实机目标",
+      "applicable": false,
+      "evidenceSource": "device",
+      "physicalHardware": false,
+      "reason": "桌面 C 练习已能隔离验证语言概念，硬件证据不属于本周完成条件。"
+    },
+    {
+      "mode": "manual",
+      "action": "逐位写出一次掩码运算并标出值和地址",
+      "expectedEvidence": "手写追踪表与解释",
+      "limitation": "需要人工核对每个 bit",
+      "applicable": true,
+      "evidenceSource": "manual",
+      "physicalHardware": false
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "lab-w01-breadboard",
+  "lessonId": "w01-foundations",
+  "title": "断电检查面包板 LED 完整回路",
+  "hardware": ["面包板", "LED", "1 kΩ 电阻", "万用表", "杜邦线"],
+  "wiringChecklist": [
+    "保持电源和 STM32 全部断电，先识别面包板两侧电源轨是否中间断开。",
+    "按 3.3 V → 1 kΩ 电阻 → LED 阳极 → LED 阴极 → GND 画出并摆放完整回路。",
+    "确认 LED 长脚或器件标记对应阳极，电阻确实串联而不是跨在同一排。",
+    "不接 GPIO、不通电，用万用表通断档逐段检查连接关系并记录。"
+  ],
+  "safety": [
+    "反接 LED、打开电阻路径或移动跳线前必须断电。",
+    "只按 3.3 V 逻辑设计，禁止把 5 V 直接送入 STM32 GPIO。",
+    "LED 必须串联 1 kΩ 限流电阻，本实验不需要给 GPIO 上电。"
+  ],
+  "expectedObservations": [
+    "同一连通排两点接近导通，跨越隔离槽或断开的电源轨不导通。",
+    "按典型 LED 压降约 2.0 V 估算，1 kΩ 电阻电流约为 1.3 mA。",
+    "反接 LED 不改变导线连续性，但改变二极管允许电流的方向。"
+  ],
+  "faultTasks": [
+    "保持断电，先把 LED 反接，再把电阻一端移到不连通的一排；分别用回路图和通断检查定位。"
+  ],
+  "detectionChecks": [
+    {
+      "mode": "automatic",
+      "action": "提交欧姆定律计算和数制转换自测",
+      "expectedEvidence": "自动判分答案记录",
+      "limitation": "不能验证真实面包板连接",
+      "applicable": true,
+      "evidenceSource": "simulator",
+      "physicalHardware": false
+    },
+    {
+      "mode": "semi-automatic",
+      "action": "用万用表通断档逐段测量断电回路",
+      "expectedEvidence": "通断读数检查表",
+      "limitation": "需要学习者移动表笔并判断测点",
+      "applicable": true,
+      "evidenceSource": "manual",
+      "physicalHardware": true
+    },
+    {
+      "mode": "manual",
+      "action": "拍摄断电接线并画出完整电流回路",
+      "expectedEvidence": "接线照片和回路图",
+      "limitation": "人工证据需核对电阻串联位置",
+      "applicable": true,
+      "evidenceSource": "manual",
+      "physicalHardware": true
+    }
+  ]
+}

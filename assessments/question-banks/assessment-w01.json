@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "assessment-w01",
+  "lessonId": "w01-foundations",
+  "items": [
+    { "id": "w01-concept", "kind": "concept", "prompt": "用电势差和完整回路解释电流为何能流动，并计算 3.3 V、LED 压降 2.0 V、1 kΩ 时的电流。", "tagIds": ["foundation.electricity"], "maxScore": 25, "answer": "电压是两点电势差；闭合回路中电阻电流约为 (3.3-2.0)/1000=1.3 mA。", "rubric": ["解释电势差而非把电压说成单点物质", "画出完整去回路径", "计算过程与单位正确"] },
+    { "id": "w01-configuration", "kind": "configuration", "prompt": "标出面包板电源轨、隔离槽和可能断开的轨段，并把 0x2D 写成二进制。", "tagIds": ["foundation.binary", "foundation.electricity"], "maxScore": 25, "answer": "0x2D = 0b00101101；电源轨是否贯通必须断电用通断档确认。", "rubric": ["面包板连接判断正确", "二进制转换和位编号正确"] },
+    { "id": "w01-practical", "kind": "practical", "prompt": "在断电状态搭建串联电阻的 LED 回路，分别定位反接 LED 和开路电阻两项故障。", "tagIds": ["foundation.electricity"], "maxScore": 35, "rubric": ["始终断电改线", "电阻串联且回路完整", "用测点证据区分两项故障"] },
+    { "id": "w01-reflection", "kind": "reflection", "prompt": "画出完整电流回路，并用自己的话说明电阻如何同时保护 LED 和 GPIO。", "tagIds": ["foundation.electricity"], "maxScore": 15, "rubric": ["复述不是照抄定义", "明确过流与压降关系", "笔记包含仍不确定之处"] }
+  ]
+}

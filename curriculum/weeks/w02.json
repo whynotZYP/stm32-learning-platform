@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "w02-c-language",
+  "week": 2,
+  "title": "C 语言与内存基础",
+  "estimatedMinutes": 420,
+  "sourceCourseIds": ["07"],
+  "prerequisiteTagIds": ["foundation.binary"],
+  "targetTagIds": ["c.control-flow", "c.memory"],
+  "objectives": [
+    "选择明确宽度和符号属性的整数类型并说明溢出风险",
+    "用位运算和掩码设置、清除和测试一个指定 bit",
+    "用函数、数组、结构体和 enum 表达小型状态模型",
+    "区分变量保存的值、变量所在地址和指针保存的地址"
+  ],
+  "conceptPath": "curriculum/weeks/w02.md",
+  "labIds": ["lab-w02-bitmask"],
+  "assessmentId": "assessment-w02",
+  "safety": [
+    "本周只运行桌面 C 程序，不连接或给 STM32 GPIO 上电。",
+    "若桌面旁放有开发板，改变跳线前仍须断电并避免 5 V 接入 GPIO。"
+  ],
+  "detectionChecks": [
+    {
+      "mode": "automatic",
+      "action": "编译运行位掩码与结构体地址桌面练习",
+      "expectedEvidence": "编译通过和断言测试日志",
+      "limitation": "桌面构建只证明 C 表达式结果，不证明 MCU 或实物行为",
+      "applicable": true,
+      "evidenceSource": "simulator",
+      "physicalHardware": false
+    },
+    {
+      "mode": "semi-automatic",
+      "action": "通过开发板串口自动回传位操作结果",
+      "expectedEvidence": "设备回传的位模式",
+      "limitation": "本周不要求生成或烧录 STM32 固件",
+      "applicable": false,
+      "evidenceSource": "device",
+      "physicalHardware": false,
+      "reason": "本周目标是可在电脑复现的 C 语言基础，设备验证留到第 3 周以后。"
+    },
+    {
+      "mode": "manual",
+      "action": "逐位追踪一个表达式并解释值与地址的区别",
+      "expectedEvidence": "逐步手算表和口述记录",
+      "limitation": "解释质量需要人工按 rubric 判断",
+      "applicable": true,
+      "evidenceSource": "manual",
+      "physicalHardware": false
+    }
+  ]
+}

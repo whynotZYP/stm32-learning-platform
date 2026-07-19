@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "lab-w03-first-project",
+  "lessonId": "w03-first-project",
+  "title": "创建、构建、烧录并调试第一个 HAL 工程",
+  "hardware": ["STM32F103C8T6 最小系统板", "ST-LINK", "USB 数据线", "电脑"],
+  "wiringChecklist": [
+    "断电后核对板上芯片为 STM32F103C8T6，并检查是否存在常见 8 MHz HSE 晶振。",
+    "断电连接 ST-LINK：SWDIO 对 PA13、SWCLK 对 PA14、GND 共地；供电只选一种方式。",
+    "核对 PC13 板载 LED 是否存在且为低电平点亮；不确定时改用 PC13 外接 1 kΩ LED 到 3.3 V。",
+    "在 CubeMX 选择 STM32F103C8Tx、HSE Crystal、72 MHz、Serial Wire 和 CMake 后生成。"
+  ],
+  "safety": [
+    "插拔 ST-LINK、调整 SWD 或 LED 接线前必须断电。",
+    "所有 GPIO 按 3.3 V 逻辑使用，禁止把 5 V 直接接入普通 GPIO。",
+    "外接 LED 必须串联 1 kΩ 限流电阻，并在上电前检查极性。"
+  ],
+  "expectedObservations": [
+    "CMake 配置识别 arm-none-eabi-gcc，Ninja 链接出 w03-first-project.elf。",
+    "调试器识别 STM32F103C8Tx，CPU 能停在 main，RCC 显示 HSE/PLL 配置。",
+    "程序运行时 PC13 ODR 周期变化；是否真的发光仍需人工观察。"
+  ],
+  "faultTasks": [
+    "故意选择错误调试探针或错误目标一次，保存工具错误信息，再从 target ID、SWD 接线和配置逐项恢复。"
+  ],
+  "detectionChecks": [
+    {
+      "mode": "automatic",
+      "action": "配置并构建独立 CMake HAL 工程",
+      "expectedEvidence": "构建日志与 ELF 文件",
+      "limitation": "只能证明源码编译链接，不能证明已烧录或 LED 发光",
+      "applicable": true,
+      "evidenceSource": "simulator",
+      "physicalHardware": false
+    },
+    {
+      "mode": "semi-automatic",
+      "action": "通过 ST-LINK 停在 main 并读取 RCC 和 GPIO",
+      "expectedEvidence": "芯片 ID、断点与寄存器截图",
+      "limitation": "需要学习者授权并连接真实开发板",
+      "applicable": true,
+      "evidenceSource": "device",
+      "physicalHardware": true
+    },
+    {
+      "mode": "manual",
+      "action": "确认 LED 变化并复述完整工具链",
+      "expectedEvidence": "现象记录和流程图",
+      "limitation": "LED 物理现象不能从编译日志推断",
+      "applicable": true,
+      "evidenceSource": "manual",
+      "physicalHardware": true
+    }
+  ],
+  "firmwareProject": "firmware/lessons/w03-first-project"
+}
