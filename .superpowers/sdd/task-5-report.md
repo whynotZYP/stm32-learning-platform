@@ -43,3 +43,11 @@ git diff --check
 ## Concerns
 
 无。
+
+## README 链接修复
+
+- 用户决定：Windows 环境说明应使用可点击的相对 Markdown 链接。
+- RED：使用严格 UTF-8 `ReadAllText` 检查，`[Windows 工具链说明](docs/setup/windows-toolchain.md)` 为 `False`，而 `docs/setup/windows-toolchain.md` 存在。
+- GREEN：README 已改为 `详细环境说明见 [Windows 工具链说明](docs/setup/windows-toolchain.md)。`；严格 UTF-8 检查链接存在，并确认解析出的相对目标文件存在。
+- 验证命令：`npm test`、`npm run typecheck`、`git diff --check`。
+- 验证输出：链接存在且解析目标存在；`npm test` 为 4 个测试文件、12 项测试通过；`npm run typecheck` 退出码 0；`git diff --check` 退出码 0 且没有输出。

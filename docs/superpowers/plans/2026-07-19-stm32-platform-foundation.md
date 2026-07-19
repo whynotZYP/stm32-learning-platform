@@ -860,8 +860,10 @@ Create `README.md`:
 
 运行 `npm run validate:content`、`npm test`、`npm run typecheck` 和 `npm run build`。四项都通过才表示网页和课程结构没有已知错误；这不等于真实硬件已经验证。
 
-详细环境说明见 `docs/setup/windows-toolchain.md`。
+详细环境说明见 [Windows 工具链说明](docs/setup/windows-toolchain.md)。
 ```
+
+> 用户决定：README 中的 Windows 环境说明使用可点击的相对 Markdown 链接。
 
 - [ ] **Step 3: Run the complete foundation gate**
 
