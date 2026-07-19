@@ -8,6 +8,7 @@ export function AppShell() {
         <Link to="/">首页</Link>
         <Link to="/map">学习地图</Link>
         <Link to="/report">知识报告</Link>
+        <Link to="/notes">笔记与备份</Link>
       </nav>
     </header>
     <main><Outlet /></main>

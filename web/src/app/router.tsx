@@ -5,6 +5,7 @@ import { KnowledgeReportPage } from '../pages/KnowledgeReportPage';
 import { AssessmentPage } from '../pages/AssessmentPage';
 import { LessonPage } from '../pages/LessonPage';
 import { LearningMapPage } from '../pages/LearningMapPage';
+import { NotesSettingsPage } from '../pages/NotesSettingsPage';
 import { UnavailablePage } from '../pages/UnavailablePage';
 import { WeekPage } from '../pages/WeekPage';
 
@@ -15,6 +16,7 @@ export const routes: RouteObject[] = [{ element: <AppShell />, children: [
   { path: '/lesson/:lessonId', element: <LessonPage /> },
   { path: '/assessment/:assessmentId', element: <AssessmentPage /> },
   { path: '/report', element: <KnowledgeReportPage /> },
+  { path: '/notes', element: <NotesSettingsPage /> },
   { path: '*', element: <UnavailablePage /> },
 ]}];
 

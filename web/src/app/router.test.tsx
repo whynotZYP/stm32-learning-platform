@@ -25,6 +25,7 @@ const expectedHeadings = [
   ['/lesson/w04-gpio-output', 'GPIO 输出、LED 与蜂鸣器'],
   ['/assessment/entry-diagnostic', '入门诊断'],
   ['/report', '知识掌握报告'],
+  ['/notes', '笔记与备份'],
 ] as const;
 
 const unavailablePaths = ['/not-a-route'] as const;

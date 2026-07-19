@@ -42,4 +42,10 @@ export const LearnerStateSchema = z.object({
   notes: z.record(z.string(), z.string()),
   completedPhaseIds: z.array(z.number().int().min(1).max(6)),
   updatedAt: z.string().datetime(),
+}).superRefine((state, context) => {
+  const seen = new Set<string>();
+  state.evidence.forEach((record, index) => {
+    if (seen.has(record.id)) context.addIssue({ code: 'custom', message: '证据记录 ID 必须全局唯一', path: ['evidence', index, 'id'] });
+    seen.add(record.id);
+  });
 });

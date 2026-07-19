@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createDefaultState } from '../domain/progress/defaultState';
+import { importBackup } from '../domain/backup/backup';
 import type { ProgressRepository } from '../domain/progress/repository';
 import type { EvidenceRecord, LearnerState } from '../domain/progress/types';
 
@@ -11,6 +12,7 @@ export interface ProgressActions {
   saveNote(lessonId: string, markdown: string): Promise<void>;
   setCurrentWeek(week: number): Promise<void>;
   replaceState(state: LearnerState): Promise<void>;
+  restoreBackup(json: string): Promise<boolean>;
 }
 
 export interface ProgressContextValue extends ProgressActions { state: LearnerState; loading: boolean; error: string | undefined; }
@@ -121,7 +123,19 @@ export function ProgressProvider({ repository, children }: { repository: Progres
     }, undefined);
   }, [enqueue, boundRepository, publish, clearError, showError]);
 
-  const value = useMemo<ProgressContextValue>(() => ({ state, loading, error, recordEvidence, recordEvidenceBatch, saveNote, setCurrentWeek, replaceState }), [state, loading, error, recordEvidence, recordEvidenceBatch, saveNote, setCurrentWeek, replaceState]);
+  const restoreBackup = useCallback((json: string) => enqueue(async () => {
+    try {
+      const restored = await importBackup(json, boundRepository);
+      publish(restored);
+      clearError();
+      return true;
+    } catch {
+      showError('暂时无法恢复备份，原有学习进度未改变。');
+      return false;
+    }
+  }, false), [enqueue, boundRepository, publish, clearError, showError]);
+
+  const value = useMemo<ProgressContextValue>(() => ({ state, loading, error, recordEvidence, recordEvidenceBatch, saveNote, setCurrentWeek, replaceState, restoreBackup }), [state, loading, error, recordEvidence, recordEvidenceBatch, saveNote, setCurrentWeek, replaceState, restoreBackup]);
   return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;
 }
 

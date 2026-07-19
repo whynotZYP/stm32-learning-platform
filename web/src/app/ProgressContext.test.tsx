@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDefaultState } from '../domain/progress/defaultState';
+import { exportBackup } from '../domain/backup/backup';
 import type { ProgressRepository } from '../domain/progress/repository';
 import type { EvidenceRecord, LearnerState } from '../domain/progress/types';
 import { ProgressProvider, useProgress, type ProgressContextValue } from './ProgressContext';
@@ -289,5 +290,22 @@ describe('ProgressProvider', () => {
     const load = vi.spyOn(repository, 'load');
     render(<StrictMode><ProgressProvider repository={repository}><Probe onChange={() => undefined} /></ProgressProvider></StrictMode>);
     await waitFor(() => expect(load).toHaveBeenCalledTimes(1));
+  });
+
+  it('queues verified backup recovery through the existing repository boundary and retains state on validation failure', async () => {
+    const repository = createMemoryRepository();
+    const { progress } = await renderProgress(repository);
+    await act(async () => { await progress().saveNote('before', '保留直到恢复'); });
+    const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 8, notes: { imported: '已恢复' } };
+    repository.saved.length = 0;
+    let restored = false;
+    await act(async () => { restored = await progress().restoreBackup(exportBackup(incoming, '2026-07-19T02:00:00.000Z')); });
+    expect(restored).toBe(true);
+    expect(progress().state).toEqual(incoming);
+    const beforeInvalid = structuredClone(progress().state);
+    await act(async () => { restored = await progress().restoreBackup('{'); });
+    expect(restored).toBe(false);
+    expect(progress().state).toEqual(beforeInvalid);
+    expect(progress().error).toBe('暂时无法恢复备份，原有学习进度未改变。');
   });
 });
