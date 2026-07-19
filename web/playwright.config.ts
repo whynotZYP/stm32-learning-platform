@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const channel = process.env.PLAYWRIGHT_CHANNEL === 'chrome' ? 'chrome' : undefined;
+
 export default defineConfig({
   testDir: './e2e',
   webServer: {
@@ -12,7 +14,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'], channel: 'chrome' } },
-    { name: 'mobile-chromium', use: { ...devices['Pixel 7'], channel: 'chrome' } },
+    { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'], ...(channel ? { channel } : {}) } },
+    { name: 'mobile-chromium', use: { ...devices['Pixel 7'], ...(channel ? { channel } : {}) } },
   ],
 });

@@ -1,11 +1,11 @@
 import { StrictMode } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ProgressProvider } from '../app/ProgressContext';
+import { ProgressProvider, useProgress } from '../app/ProgressContext';
 import { exportBackup } from '../domain/backup/backup';
 import { createDefaultState } from '../domain/progress/defaultState';
 import type { ProgressRepository } from '../domain/progress/repository';
-import type { LearnerState } from '../domain/progress/types';
+import type { EvidenceRecord, LearnerState } from '../domain/progress/types';
 import { download, NotesSettingsPage } from './NotesSettingsPage';
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
@@ -35,7 +35,28 @@ function renderPage(repository: ProgressRepository = createRepository(), strict 
   return { repository, ...render(strict ? <StrictMode>{page}</StrictMode> : page) };
 }
 
+const unrelatedEvidence: EvidenceRecord = {
+  id: 'unrelated-evidence', learnerId: 'local', lessonId: 'w02-c-language', tagIds: ['c.memory'], kind: 'concept',
+  status: 'auto-pass', score: 100, source: 'assessment', createdAt: '2026-07-19T00:00:00.000Z', details: {},
+};
+
+function RecordUnrelatedEvidence() {
+  const { recordEvidence } = useProgress();
+  return <button type="button" onClick={() => { void recordEvidence(unrelatedEvidence); }}>记录无关进度</button>;
+}
+
 describe('NotesSettingsPage', () => {
+  it('keeps an unsaved draft when unrelated progress publishes a new state', async () => {
+    const repository = createRepository();
+    render(<ProgressProvider repository={repository}><NotesSettingsPage /><RecordUnrelatedEvidence /></ProgressProvider>);
+    const draft = '尚未保存的 GPIO 笔记';
+    const input = await screen.findByLabelText('本周笔记');
+    fireEvent.change(input, { target: { value: draft } });
+    fireEvent.click(screen.getByRole('button', { name: '记录无关进度' }));
+    await waitFor(() => expect(repository.calls).toContain('save'));
+    expect(screen.getByLabelText('本周笔记')).toHaveValue(draft);
+  });
+
   it('downloads local Markdown and full progress, then revokes each temporary URL', async () => {
     const create = vi.fn(() => 'blob:download');
     const revoke = vi.fn();

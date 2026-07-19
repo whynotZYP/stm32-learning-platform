@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 test.afterEach(async ({ page }, testInfo) => {
   if (testInfo.project.name === 'mobile-chromium') {
@@ -6,9 +6,23 @@ test.afterEach(async ({ page }, testInfo) => {
   }
 });
 
+async function completeDiagnostic(page: Page) {
+  await page.getByRole('link', { name: '继续学习' }).click();
+  await page.getByRole('link', { name: '进入本周课程' }).click();
+  await page.getByRole('link', { name: '进行入门诊断' }).click();
+  const answers = page.getByLabel('你的回答');
+  await answers.nth(0).fill('电压提供势能差，电流需要闭合回路，电阻限制电流。');
+  await answers.nth(1).fill('第3位');
+  await answers.nth(2).fill('A');
+  await answers.nth(3).fill('记录可复现的串口数据和 LED 现象。');
+  await page.getByRole('button', { name: '提交诊断' }).click();
+  return page.getByRole('status');
+}
+
 test('new learner can find the full 24-week map', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: '今天从这里开始' })).toBeVisible();
+  await expect(page.getByText('当前：第 1 周')).toBeVisible();
   await page.getByRole('link', { name: '学习地图' }).click();
   await expect(page.getByRole('heading', { name: '24 周学习地图' })).toBeVisible();
   await expect(page.getByRole('link', { name: /第 24 周/ })).toBeVisible();
@@ -16,16 +30,7 @@ test('new learner can find the full 24-week map', async ({ page }) => {
 
 test('entry diagnostic saves an understandable evidence batch', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: '继续学习' }).click();
-  await page.getByRole('link', { name: '进入本周课程' }).click();
-  await page.getByRole('link', { name: '进行入门诊断' }).click();
-  const answers = page.getByLabel('你的回答');
-  await answers.nth(0).fill('电压提供势能差，电流需要闭合回路，电阻限制电流。');
-  await answers.nth(1).fill('第 3 位');
-  await answers.nth(2).fill('A');
-  await answers.nth(3).fill('记录可复现的串口数据和 LED 现象。');
-  await page.getByRole('button', { name: '提交诊断' }).click();
-  const result = page.getByRole('status');
+  const result = await completeDiagnostic(page);
   await expect(result).toContainText('诊断记录已保存');
   await expect(result).toContainText('来源：测验');
   await expect(result).toContainText('状态：自动通过');
@@ -46,8 +51,14 @@ test('a failed Phase 1 gate explains recovery without hiding week 5', async ({ p
 });
 
 test('notes, backup export, local reset, and restore work together', async ({ page }) => {
-  await page.goto('/#/notes');
-  const note = 'GPIO 输出实验：LED 与限流电阻验证完成。';
+  await page.goto('/');
+  await completeDiagnostic(page);
+  await page.goto('/#/');
+  await page.getByRole('button', { name: '采用第 5 周建议' }).click();
+  await expect(page.getByText('当前：第 5 周')).toBeVisible();
+  await page.getByRole('link', { name: '笔记与备份' }).click();
+  await expect(page.getByText('当前导出：第 5 周')).toBeVisible();
+  const note = 'GPIO 输入实验：按键与上拉电阻验证完成。';
   await page.getByLabel('本周笔记').fill(note);
   await page.getByRole('button', { name: '保存笔记' }).click();
   await expect(page.getByRole('status')).toContainText('笔记已保存');
@@ -67,12 +78,13 @@ test('notes, backup export, local reset, and restore work together', async ({ pa
     request.onblocked = () => reject(new Error('测试数据库仍被占用'));
   }));
   await page.goto('/#/notes');
+  await expect(page.getByText('当前导出：第 1 周')).toBeVisible();
   await expect(page.getByLabel('本周笔记')).toHaveValue('');
   await page.getByLabel('导入备份').setInputFiles(backupPath);
   await expect(page.getByRole('status')).toContainText('备份文件已验证');
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: '恢复已选备份' }).click();
   await expect(page.getByRole('status')).toContainText('备份已恢复');
+  await expect(page.getByText('当前导出：第 5 周')).toBeVisible();
   await expect(page.getByLabel('本周笔记')).toHaveValue(note);
-  await expect(page.getByText('当前导出：第 1 周')).toBeVisible();
 });

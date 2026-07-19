@@ -1,9 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useProgress } from '../app/ProgressContext';
 import { loadCourseMap } from '../domain/content/loadCourseMap';
-import { buildRemediationQueue } from '../domain/remediation/buildRemediationQueue';
 import { calculateTagMastery, type TagMastery } from '../domain/scoring/mastery';
-import { evaluatePhaseGate } from '../domain/scoring/phaseGate';
+import { derivePhaseGateProgress } from '../domain/scoring/phaseGateProgress';
 
 const phaseOnePrerequisites = ['foundation.electricity', 'foundation.binary', 'c.control-flow', 'c.memory', 'gpio.output-mode'];
 const bandLabel: Record<TagMastery['band'], string> = {
@@ -17,17 +16,12 @@ export function KnowledgeReportPage() {
 
   const courseMap = loadCourseMap();
   const phaseOneLessonIds = courseMap.weeks.filter((week) => week.phase === 1).flatMap((week) => week.lessonIds);
-  const phaseEvidence = state.evidence.filter((record) => phaseOneLessonIds.includes(record.lessonId));
   const tagIds = [...new Set([...phaseOnePrerequisites, ...state.evidence.flatMap((record) => record.tagIds)])];
   const mastery = tagIds.map((tagId) => calculateTagMastery(tagId, state.evidence));
-  const prerequisiteScores = Object.fromEntries(phaseOnePrerequisites.map((tagId) => [tagId, mastery.find((item) => item.tagId === tagId)?.score ?? 0]));
-  const gate = evaluatePhaseGate({
-    phaseId: 1,
-    lessonScores: phaseEvidence.map((record) => record.score),
-    practicalScores: phaseEvidence.filter((record) => record.kind === 'practical').map((record) => record.score),
-    prerequisiteScores,
+  const phase = derivePhaseGateProgress({
+    phaseId: 1, lessonIds: phaseOneLessonIds, prerequisiteTagIds: phaseOnePrerequisites, state,
   });
-  const remediation = buildRemediationQueue(mastery);
+  const { gate, remediation } = phase;
   return <section className="page"><h1>知识掌握报告</h1>
     <section aria-label="第一阶段闯关"><h2>第一阶段闯关</h2>
       <p className={gate.passed ? 'status status--success' : 'status status--danger'}>{gate.passed ? '已通过第一阶段闯关。' : '第一阶段尚未通过，按以下规则补强。'}</p>

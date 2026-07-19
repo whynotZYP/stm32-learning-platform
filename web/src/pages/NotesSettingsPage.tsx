@@ -34,7 +34,8 @@ export function NotesSettingsPage() {
   const courseMap = loadCourseMap();
   const week = courseMap.weeks[state.currentWeek - 1];
   const lessonId = week.lessonIds[0] ?? `week-${week.week}`;
-  useEffect(() => { setNote(state.notes[lessonId] ?? ''); }, [lessonId, state.notes]);
+  const savedNote = state.notes[lessonId] ?? '';
+  useEffect(() => { setNote(savedNote); }, [lessonId, savedNote]);
 
   if (loading) return <section className="page"><h1>笔记与备份</h1><p>正在读取本机学习进度。</p></section>;
   if (progressError === '暂时无法读取本机学习进度，请刷新页面后重试。') return <section className="page"><h1>笔记与备份</h1><p role="alert" className="status status--danger">{progressError}</p></section>;
