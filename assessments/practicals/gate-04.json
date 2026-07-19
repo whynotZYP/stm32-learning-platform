@@ -1,0 +1,11 @@
+{
+  "schemaVersion":1,"id":"gate-04","phase":4,"title":"阶段四：DMA、USART 数据包与 I2C 基础",
+  "lessonIds":["w13-dma","w14-usart","w15-usart-packets","w16-i2c-basics"],
+  "requiredTagIds":["dma.transfer","usart.physical-frame","usart.packet","i2c.protocol"],
+  "items":[
+    {"id":"g4-c","kind":"concept","prompt":"画图比较 CPU 逐项搬运与 DMA 请求驱动的数据流，并解释 USART 帧/数据包两层和 I2C 开漏 ACK。","tagIds":["dma.transfer","usart.physical-frame","usart.packet","i2c.protocol"],"maxScore":25,"rubric":["CPU/DMA 路径准确","物理帧与数据包分层","I2C 电气与协议相连"]},
+    {"id":"g4-k","kind":"configuration","prompt":"说明 ADC circular DMA 的宽度计数、USART1 115200 8N1 与 RX 恢复、I2C1 100 kHz/3.3 V 上拉/地址左移。","tagIds":["dma.transfer","usart.physical-frame","i2c.protocol"],"maxScore":25,"rubric":["关键配置可追溯到数据手册","所有等待有上限"]},
+    {"id":"g4-p","kind":"practical","prompt":"展示稳定 DMA 快照；从原始字节修复一条 checksum 损坏的 USART 帧并证明后续帧恢复；从 START、地址+W、寄存器 0x75、重复 START、地址+R、NACK 到 STOP 跟踪 WHO_AM_I 读取。","tagIds":["dma.transfer","usart.packet","i2c.protocol"],"maxScore":35,"rubric":["快照无半更新","损坏字段与修复计算正确","I2C START 到 STOP 顺序完整","不伪造实机结果"]},
+    {"id":"g4-r","kind":"reflection","prompt":"提交 Markdown，分开列出 host/build、device、manual 三类证据和未完成的真实硬件验证。","tagIds":["debug.observation"],"maxScore":15,"rubric":["证据来源清楚","风险与待验证项真实"]}
+  ]
+}

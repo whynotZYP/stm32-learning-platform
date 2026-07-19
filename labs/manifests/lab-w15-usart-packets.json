@@ -1,0 +1,10 @@
+{
+  "schemaVersion":1,"id":"lab-w15-usart-packets","lessonId":"w15-usart-packets","title":"有界 HEX 数据包与故障恢复",
+  "hardware":["STM32F103C8T6","ST-LINK","3.3 V TTL CH340","支持 HEX 的串口终端"],
+  "wiringChecklist":["沿用断电接线：PA9/TX 接 CH340/RX、PA10/RX 接 CH340/TX，并共地。","终端固定 115200 8N1，切换文本/HEX 显示时记录当前模式，避免把字符 AA 当成字节 0xAA。"],
+  "safety":["接线前必须断电并确认 3.3 V TTL；禁止 RS-232/5 V 电平。","串口下载只讲原理；不改变 BOOT0、不擦除板上固件，除非另有备份和明确步骤。"],
+  "expectedObservations":["合法 AA-len-command-payload-checksum 帧返回 ACK 0x06。","分片和连续帧可解析；坏校验、超长帧返回 NAK 0x15；丢字节超时后下一帧恢复。"],
+  "faultTasks":["依次注入丢字节、错误 checksum、两个帧连续发送和超过 16-byte 的 length，保存每次结果及恢复证据。"],
+  "detectionChecks":[{"mode":"automatic","action":"执行生产 parser 的分片、连续、校验、超时和超长测试","expectedEvidence":"host 行为测试通过","limitation":"不包含真实串口波形","applicable":true,"evidenceSource":"simulator","physicalHardware":false},{"mode":"semi-automatic","action":"设备响应正常帧与四类故障帧","expectedEvidence":"ACK/NAK 与恢复日志","limitation":"需与注入字节流配对审查","applicable":true,"evidenceSource":"device","physicalHardware":true},{"mode":"manual","action":"核对文本/HEX 模式和每个帧字段","expectedEvidence":"带注释的发送记录","limitation":"显示方式需人工辨认","applicable":true,"evidenceSource":"manual","physicalHardware":true}],
+  "firmwareProject":"firmware/lessons/w15-usart-packets"
+}

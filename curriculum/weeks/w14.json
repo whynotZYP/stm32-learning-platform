@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "w14-usart",
+  "week": 14,
+  "title": "USART 物理帧与可靠收发",
+  "estimatedMinutes": 480,
+  "sourceCourseIds": ["25", "26", "27"],
+  "prerequisiteTagIds": ["foundation.binary", "gpio.output-mode"],
+  "targetTagIds": ["usart.physical-frame"],
+  "objectives": ["解释串行/并行、单工/双工与异步 8N1 帧", "安全连接 3.3 V TTL CH340 与 USART1 PA9/PA10", "实现有时限的发送、IRQ 接收重挂接和 ORE 恢复"],
+  "conceptPath": "curriculum/weeks/w14.md",
+  "labIds": ["lab-w14-usart"],
+  "assessmentId": "assessment-w14",
+  "safety": ["接线前必须断电；CH340 必须使用 3.3 V TTL 逻辑，TX/RX 交叉并与开发板共地。", "不得把 RS-232 电平或 5 V TTL 直接接到 STM32F103 GPIO，也不要同时让两路电源互相回灌。"],
+  "detectionChecks": [
+    {"mode":"automatic","action":"构建并检查 115200 8N1、发送上限、RX 重挂接与 ORE 分支","expectedEvidence":"host 状态机测试、ELF 与配置记录","limitation":"静态和 host 检查不能证明线缆电平正确","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备通过 CH340 收发字节并核对 echo 与错误计数","expectedEvidence":"有效 echo、重连后继续接收和 ORE 恢复记录","limitation":"通信成功不能证明每根线长期安全可靠","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"断电检查 CH340 电平、TX/RX 交叉和公共地","expectedEvidence":"3.3 V 档位与接线清单签字或照片","limitation":"接线与电压只能由真人现场确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion":1,"id":"lab-w16-i2c-basics","lessonId":"w16-i2c-basics","title":"I2C 时序图与 MPU6050 WHO_AM_I",
+  "hardware":["STM32F103C8T6","ST-LINK","MPU6050 模块","两只 4.7 kΩ 上拉电阻","万用表"],
+  "wiringChecklist":["断电后把 PB6/SCL、PB7/SDA 接到 MPU6050，并把两线分别经外部 4.7 kΩ 上拉到 3.3 V。","模块接 3.3 V 与公共 GND；AD0 接地时 7-bit 地址为 0x68，上电前测量确认无 5 V 上拉。"],
+  "safety":["所有 I2C 接线变化前必须断电，外部上拉只能接 3.3 V。","确认模块板是否自带上拉，避免错误电压或过小并联阻值。"],
+  "expectedObservations":["100 kHz 下用 HAL 地址 0x68 << 1 读取寄存器 0x75，期望得到 0x68。","拔掉模块或移除上拉时 20 ms 内返回 timeout/bus error，不会永久卡住。"],
+  "faultTasks":["先错误地把 0xD0 当 7-bit 地址，再断电移除上拉；记录 NACK/timeout 分类并恢复正确地址和上拉。"],
+  "detectionChecks":[{"mode":"automatic","action":"执行地址与结果分类 host 测试并检查 100 kHz 配置","expectedEvidence":"常量、timeout/error/ID 测试通过","limitation":"不能证明模块在线","applicable":true,"evidenceSource":"simulator","physicalHardware":false},{"mode":"semi-automatic","action":"设备读取 WHO_AM_I 并分类故障","expectedEvidence":"0x68 或明确错误码","limitation":"ID 正确不代表六轴数据正确","applicable":true,"evidenceSource":"device","physicalHardware":true},{"mode":"manual","action":"断电核对上拉、电源和公共地","expectedEvidence":"阻值、逻辑高电压与接线记录","limitation":"电气安全只能人工确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}],
+  "firmwareProject":"firmware/lessons/w16-i2c-mpu6050-id"
+}

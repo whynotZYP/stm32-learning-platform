@@ -1,0 +1,28 @@
+#ifndef MPU6050_ID_H
+#define MPU6050_ID_H
+
+#include <stdint.h>
+
+enum {
+  MPU6050_ADDRESS_7BIT = 0x68U,
+  MPU6050_HAL_ADDRESS = (MPU6050_ADDRESS_7BIT << 1),
+  MPU6050_WHO_AM_I_REGISTER = 0x75U,
+  MPU6050_EXPECTED_ID = 0x68U
+};
+
+typedef enum {
+  MPU6050_TRANSPORT_OK = 0,
+  MPU6050_TRANSPORT_TIMEOUT,
+  MPU6050_TRANSPORT_ERROR
+} Mpu6050TransportStatus;
+
+typedef enum {
+  MPU6050_ID_OK = 0,
+  MPU6050_ID_TIMEOUT,
+  MPU6050_ID_BUS_ERROR,
+  MPU6050_ID_WRONG
+} Mpu6050IdResult;
+
+Mpu6050IdResult Mpu6050_ClassifyWhoAmI(Mpu6050TransportStatus status, uint8_t id);
+
+#endif

@@ -1,0 +1,10 @@
+{
+  "schemaVersion":1,"id":"lab-w13-dma","lessonId":"w13-dma","title":"内存搬运与四通道 ADC DMA 稳定快照",
+  "hardware":["STM32F103C8T6","ST-LINK","四个 0–3.3 V 模拟信号源或电位器","万用表"],
+  "wiringChecklist":["断电后把四路 0–3.3 V 信号接到 PA0、PA1、PA2、PA3，所有信号源与开发板共地。","上电前确认没有负电压或超过 3.3 V 的输入，并记录 DMA1_Channel1 给 ADC、Channel2 给内存自检。"],
+  "safety":["任何模拟接线变更前必须断电，四路输入不得超出 0–3.3 V。","修改 DMA 时先核对地址、宽度、递增和计数，防止写出数组边界。"],
+  "expectedObservations":["memory-to-memory 的四个 32-bit word 完全一致后才报告通过。","ADC 循环缓冲每半段包含完整四通道帧；稳定快照序号递增且不会出现半新半旧。"],
+  "faultTasks":["把 ADC DMA memory width 改成 byte 或关闭 circular，观察配置/快照失败后恢复 halfword 对齐与循环模式。"],
+  "detectionChecks":[{"mode":"automatic","action":"执行生产快照 host 测试并检查 DMA 配置","expectedEvidence":"完整帧与源缓冲隔离测试通过","limitation":"不能证明物理输入电压","applicable":true,"evidenceSource":"simulator","physicalHardware":false},{"mode":"semi-automatic","action":"设备核对内存 DMA 并读取四路快照","expectedEvidence":"搬运通过、序号递增和四值变化","limitation":"设备值不等于仪表精度","applicable":true,"evidenceSource":"device","physicalHardware":true},{"mode":"manual","action":"逐路改变输入并用万用表比对","expectedEvidence":"接线、表值和快照记录","limitation":"电气与精度需人工确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}],
+  "firmwareProject":"firmware/lessons/w13-adc-dma"
+}

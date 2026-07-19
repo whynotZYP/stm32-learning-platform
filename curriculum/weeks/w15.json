@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "w15-usart-packets",
+  "week": 15,
+  "title": "USART 有界数据包与状态机",
+  "estimatedMinutes": 480,
+  "sourceCourseIds": ["28", "29", "30"],
+  "prerequisiteTagIds": ["usart.physical-frame", "exti.event-flow"],
+  "targetTagIds": ["usart.packet"],
+  "objectives": ["区分文本显示、HEX 字节与真正的帧边界", "设计含 SOF、长度、命令、payload 和 checksum 的有界数据包", "让 ISR 只入队，并在主循环处理分片、连续帧、校验错、丢字节超时和超长帧"],
+  "conceptPath": "curriculum/weeks/w15.md",
+  "labIds": ["lab-w15-usart-packets"],
+  "assessmentId": "assessment-w15",
+  "safety": ["沿用第 14 周 3.3 V TTL、断电接线和共地规则，不得接入 RS-232 电平。", "串口下载前确认 BOOT0 和目标文件；本周只解释 Bootloader 原理，不覆盖现有固件做破坏性试验。"],
+  "detectionChecks": [
+    {"mode":"automatic","action":"真实编译生产 parser 并执行分片、连续帧、校验、超时、超长和重同步用例","expectedEvidence":"16 项 host 行为测试中的 packet 用例通过","limitation":"host 字节流不能证明物理串口波形","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备接收正常与故障数据包并返回 ACK 或 NAK","expectedEvidence":"正常帧 ACK、坏校验/超长帧 NAK、后续帧恢复","limitation":"设备响应仍需与人工注入记录对应","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"用串口工具分别按文本和 HEX 发送并标注每个字段","expectedEvidence":"发送记录、字段解释和故障恢复观察","limitation":"工具显示方式与接线安全需人工确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

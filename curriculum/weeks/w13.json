@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "w13-dma",
+  "week": 13,
+  "title": "DMA 数据搬运与 ADC 循环扫描",
+  "estimatedMinutes": 480,
+  "sourceCourseIds": ["23", "24"],
+  "prerequisiteTagIds": ["c.memory", "mcu.memory-map"],
+  "targetTagIds": ["dma.transfer"],
+  "objectives": ["解释 DMA 请求、方向、地址递增、数据宽度与传输计数", "用独立通道完成 memory-to-memory 搬运并核对结果", "用 ADC1 与 DMA1_Channel1 循环采集四通道并读取稳定快照"],
+  "conceptPath": "curriculum/weeks/w13.md",
+  "labIds": ["lab-w13-dma"],
+  "assessmentId": "assessment-w13",
+  "safety": ["改接四路模拟输入前必须断电，所有输入限定为 0 至 3.3 V 并与开发板共地。", "DMA 宽度和地址递增配置错误可能破坏内存；下载前核对源、目标、计数和缓冲区边界。"],
+  "detectionChecks": [
+    {"mode":"automatic","action":"构建并执行纯 C 稳定快照测试，检查 DMA 宽度、循环模式与超时","expectedEvidence":"host 测试结果、ELF 与配置记录","limitation":"不能证明真实 ADC 引脚和 DMA 请求正在运行","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备先核对 memory DMA，再连续读取四通道完整快照和序号","expectedEvidence":"内存搬运通过且快照只按完整帧更新","limitation":"设备数值不能代替输入电压精度测量","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"断电核对四路接线，再用万用表比对输入与快照变化","expectedEvidence":"接线照片、表值和四通道变化记录","limitation":"电气安全与精度必须由真人确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

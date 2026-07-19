@@ -1,0 +1,10 @@
+{
+  "schemaVersion":1,"id":"lab-w14-usart","lessonId":"w14-usart","title":"CH340 上的 USART1 有界 echo",
+  "hardware":["STM32F103C8T6","ST-LINK","3.3 V TTL CH340","USB 数据线"],
+  "wiringChecklist":["断电后连接 PA9/TX 到 CH340/RX、PA10/RX 到 CH340/TX，并连接公共 GND。","确认 CH340 为 3.3 V TTL；若板和 CH340 各自供电，不连接两边 VCC 以避免回灌。"],
+  "safety":["所有串口接线改变前必须断电，禁止接 RS-232 或 5 V TTL 电平。","TX/RX 必须交叉且必须共地，上电前再次确认 CH340 档位。"],
+  "expectedObservations":["终端使用 115200、8 data、no parity、1 stop 时收到 ready 文本。","发送任意字节会收到相同 echo；制造 ORE 后错误计数增加且 RX 重新挂接。"],
+  "faultTasks":["把终端改成错误 baud，再分别断开公共地或交换为 TX-TX；记录乱码/无响应并断电修复。"],
+  "detectionChecks":[{"mode":"automatic","action":"检查 8N1、bounded TX 与 RX/ORE 状态机","expectedEvidence":"host 测试和构建记录","limitation":"不能证明实际线缆电平","applicable":true,"evidenceSource":"simulator","physicalHardware":false},{"mode":"semi-automatic","action":"设备经 CH340 完成 echo 与错误恢复","expectedEvidence":"echo 和错误计数记录","limitation":"通信成功不代表接线长期安全","applicable":true,"evidenceSource":"device","physicalHardware":true},{"mode":"manual","action":"断电核对电平、交叉和共地","expectedEvidence":"接线清单或照片","limitation":"物理接线只能人工确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}],
+  "firmwareProject":"firmware/lessons/w14-usart"
+}

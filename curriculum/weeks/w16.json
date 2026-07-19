@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "w16-i2c-basics",
+  "week": 16,
+  "title": "I2C 协议与 MPU6050 身份读取",
+  "estimatedMinutes": 480,
+  "sourceCourseIds": ["31", "32"],
+  "prerequisiteTagIds": ["gpio.output-mode", "usart.packet"],
+  "targetTagIds": ["i2c.protocol"],
+  "objectives": ["解释开漏、外部上拉、START/STOP、地址/RW 位与 ACK/NACK", "配置 I2C1 PB6/PB7 开漏和 100 kHz 总线", "用有界调用读取 MPU6050 WHO_AM_I 0x75 并区分超时、总线错和错误 ID"],
+  "conceptPath": "curriculum/weeks/w16.md",
+  "labIds": ["lab-w16-i2c-basics"],
+  "assessmentId": "assessment-w16",
+  "safety": ["改接 MPU6050 前必须断电，PB6/PB7 使用外部 3.3 V 上拉并与模块共地。", "先确认模块电源和逻辑电平；不得把 5 V 上拉直接接到 STM32F103 I2C 引脚。"],
+  "detectionChecks": [
+    {"mode":"automatic","action":"构建并执行地址常量与 timeout/error/ID 分类的生产 C 测试","expectedEvidence":"host 分类测试、ELF 与 100 kHz 配置记录","limitation":"不能证明总线上真实存在 MPU6050","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备在 20 ms 上限内读取 WHO_AM_I 并要求结果为 0x68","expectedEvidence":"设备返回 0x68 或明确 timeout/bus error 分类","limitation":"成功读 ID 不能证明六轴传感数据正确","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"断电核对 PB6/PB7、公共地和两只外部 3.3 V 上拉","expectedEvidence":"接线清单、上拉阻值和逻辑高电压记录","limitation":"电气连接必须由真人现场确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}
