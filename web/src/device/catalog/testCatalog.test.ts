@@ -33,6 +33,7 @@ describe('device test catalog', () => {
     for (const test of DEVICE_TESTS) {
       expect(DetectionCheckSchema.safeParse(test.detectionCheck).success, test.id).toBe(true);
       expect(test.timeoutMs, test.id).toBeGreaterThan(0);
+      expect(test.lessonId, test.id).toMatch(/^w\d{2}-/);
       expect(test.firmwareVersion).toBe('device-test-v1');
       expect(test.wiring.length, test.id).toBeGreaterThan(0);
       expect(test.safety.length, test.id).toBeGreaterThan(0);

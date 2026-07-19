@@ -1,6 +1,7 @@
 import { createHashRouter, type RouteObject } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { DashboardPage } from '../pages/DashboardPage';
+import { DeviceConsolePage } from '../pages/DeviceConsolePage';
 import { KnowledgeReportPage } from '../pages/KnowledgeReportPage';
 import { AssessmentPage } from '../pages/AssessmentPage';
 import { LessonPage } from '../pages/LessonPage';
@@ -16,6 +17,7 @@ export const routes: RouteObject[] = [{ element: <AppShell />, children: [
   { path: '/lesson/:lessonId', element: <LessonPage /> },
   { path: '/assessment/:assessmentId', element: <AssessmentPage /> },
   { path: '/report', element: <KnowledgeReportPage /> },
+  { path: '/device', element: <DeviceConsolePage /> },
   { path: '/notes', element: <NotesSettingsPage /> },
   { path: '*', element: <UnavailablePage /> },
 ]}];

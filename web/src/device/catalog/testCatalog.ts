@@ -2,6 +2,7 @@ import type { DetectionCheck } from '../../domain/content/types';
 
 export interface DeviceTestDefinition {
   id: string;
+  lessonId: string;
   title: string;
   detectionCheck: DetectionCheck;
   timeoutMs: number;
@@ -38,6 +39,7 @@ const COMMON_SERIAL_SAFETY = [
 export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   {
     id: 'system.hello',
+    lessonId: 'w03-first-project',
     title: '检测固件握手',
     detectionCheck: detectionCheck('automatic', '读取协议、固件和构建版本', '返回 protocol=1 与 device-test-v1', '只能证明检测固件能够通信'),
     timeoutMs: 2_000,
@@ -48,6 +50,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'system.chip-id',
+    lessonId: 'w03-first-project',
     title: '读取芯片唯一标识',
     detectionCheck: detectionCheck('automatic', '读取 STM32 三个唯一标识字', '返回三个非空 UID 数值', '只能证明当前连接芯片的标识可读'),
     timeoutMs: 2_000,
@@ -58,6 +61,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'gpio.loopback',
+    lessonId: 'w05-gpio-input',
     title: 'GPIO 高低电平回环',
     detectionCheck: detectionCheck('automatic', '依次输出低电平和高电平并读取回环输入', '低电平与高电平均正确返回', '需要专用短接线，不能证明 LED 亮度'),
     timeoutMs: 3_000,
@@ -68,6 +72,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'exti.event-count',
+    lessonId: 'w07-exti-events',
     title: 'EXTI 事件计数',
     detectionCheck: detectionCheck('semi-automatic', '在十秒窗口内触发外部输入并记录计数', '返回事件次数和时间戳，学习者确认实际动作', '自动数据不能证明手部动作或传感器现象'),
     timeoutMs: 15_000,
@@ -78,6 +83,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'tim.pwm-capture',
+    lessonId: 'w11-tim-measurement',
     title: 'PWM 与输入捕获回环',
     detectionCheck: detectionCheck('automatic', '输出固定 PWM 并用输入捕获测量', '频率与占空比误差均在 2% 内', '只能证明电信号参数，不能证明执行器动作'),
     timeoutMs: 5_000,
@@ -88,6 +94,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'adc.range-dma',
+    lessonId: 'w13-dma',
     title: 'ADC 范围与 DMA 采样',
     detectionCheck: detectionCheck('semi-automatic', '在安全范围内改变模拟输入并采集三十二点', '返回最小值、最大值、变化量和 DMA 计数', '学习者必须确认实际旋钮或传感器发生变化'),
     timeoutMs: 8_000,
@@ -98,6 +105,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'dma.memory-copy',
+    lessonId: 'w13-dma',
     title: 'DMA 内存搬运',
     detectionCheck: detectionCheck('automatic', '用 DMA 搬运固定数组并比较内容和标志', '源数组与目标数组完全一致', '只证明这次固定数据搬运'),
     timeoutMs: 3_000,
@@ -108,6 +116,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'usart.packet',
+    lessonId: 'w15-usart-packets',
     title: 'USART 数据包回环',
     detectionCheck: detectionCheck('automatic', '发送固定帧并检查回显、校验和错误计数', '正确帧回显且边界计数符合预期', '只能证明协议测试帧和缓冲区边界'),
     timeoutMs: 5_000,
@@ -118,6 +127,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'i2c.mpu6050-id',
+    lessonId: 'w16-i2c-basics',
     title: 'MPU6050 身份读取',
     detectionCheck: detectionCheck('automatic', '通过 I2C 读取 MPU6050 WHO_AM_I', '返回 0x68 或已配置的地址变体', '只能证明器件应答和身份寄存器'),
     timeoutMs: 5_000,
@@ -128,6 +138,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'spi.flash-id',
+    lessonId: 'w20-hardware-spi',
     title: 'W25Q64 身份读取',
     detectionCheck: detectionCheck('automatic', '通过 SPI 读取 W25Q64 JEDEC ID', '返回非全零和非全 FF 的器件标识', '只读操作不能证明擦写可靠性'),
     timeoutMs: 5_000,
@@ -138,6 +149,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'spi.flash-roundtrip',
+    lessonId: 'w20-hardware-spi',
     title: 'W25Q64 固定扇区往返',
     detectionCheck: detectionCheck('automatic', '备份固定测试扇区后擦写、校验、恢复并复核', '测试数据一致且原数据恢复复核成功', '仅允许固件声明的保留测试扇区'),
     timeoutMs: 20_000,
@@ -148,6 +160,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'rtc.bkp',
+    lessonId: 'w21-rtc-bkp',
     title: 'RTC 与备份寄存器',
     detectionCheck: detectionCheck('semi-automatic', '读写备份寄存器并观察 RTC 计数推进', '备份值一致且 RTC 计数增加', '真正断电后的保持效果仍需学习者确认'),
     timeoutMs: 10_000,
@@ -158,6 +171,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'wdg.reset-cause',
+    lessonId: 'w22-reliability-storage',
     title: '看门狗复位原因',
     detectionCheck: detectionCheck('semi-automatic', '执行两阶段看门狗复位并在重连后读取原因', '返回看门狗复位标志并清除一次性标记', '需要学习者确认断线、重连和重新握手过程'),
     timeoutMs: 20_000,
@@ -168,6 +182,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'flash.reserved-page',
+    lessonId: 'w22-reliability-storage',
     title: '片内 FLASH 保留页往返',
     detectionCheck: detectionCheck('automatic', '备份链接脚本保留页后擦写、校验、恢复并复核', '测试数据一致且保留页原数据恢复成功', '地址必须由链接符号证明位于程序和数据之外'),
     timeoutMs: 20_000,
@@ -178,6 +193,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[] = [
   },
   {
     id: 'pwr.sleep-wake',
+    lessonId: 'w22-reliability-storage',
     title: '低功耗与唤醒',
     detectionCheck: detectionCheck('semi-automatic', '进入选定安全模式并在唤醒后报告原因', '重连后返回唤醒或复位来源', '真实电流和真实断电行为必须人工测量'),
     timeoutMs: 30_000,
