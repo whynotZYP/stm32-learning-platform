@@ -47,4 +47,10 @@ describe('release workflow contracts', () => {
       .find((command) => command.includes('phase-05-content.test.ts'));
     expect(phaseFive).toContain('--testTimeout=15000');
   });
+
+  it('keeps a bounded 15-second ceiling for cold integration tests in the full CI suite', () => {
+    const fullSuite = commands(workflow('ci.yml'))
+      .find((command) => command.startsWith('npm test'));
+    expect(fullSuite).toBe('npm test -- --testTimeout=15000');
+  });
 });

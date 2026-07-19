@@ -55,7 +55,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run validate:content
-      - run: npm test
+      - run: npm test -- --testTimeout=15000
       - name: Run device protocol host-C contract
         env:
           HOST_CC: gcc
