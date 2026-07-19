@@ -20,12 +20,18 @@ function commands(document: ReturnType<typeof workflow>) {
     .map((step) => step.run).filter((command): command is string => Boolean(command));
 }
 
+function packageScripts() {
+  return (JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {
+    scripts: Record<string, string>;
+  }).scripts;
+}
+
 describe('release workflow contracts', () => {
   it('runs the deterministic web, content, browser, and host-C gates in CI', () => {
     const ci = workflow('ci.yml');
     const all = commands(ci).join('\n');
     for (const expected of [
-      'npm ci', 'npm run validate:content', 'npm test', 'npm run typecheck',
+      'npm ci', 'npm run validate:content', 'npm run test:ci', 'npm run typecheck',
       'npm run build', 'playwright install --with-deps chromium', 'npm run test:e2e',
     ]) expect(all).toContain(expected);
     expect(all).toContain('scripts/firmware/device-test-firmware.test.ts');
@@ -48,9 +54,10 @@ describe('release workflow contracts', () => {
     expect(phaseFive).toContain('--testTimeout=15000');
   });
 
-  it('keeps a bounded 15-second ceiling for cold integration tests in the full CI suite', () => {
-    const fullSuite = commands(workflow('ci.yml'))
-      .find((command) => command.startsWith('npm test'));
-    expect(fullSuite).toBe('npm test -- --testTimeout=15000');
+  it('shares one bounded cold-runner test command between CI and Pages', () => {
+    expect(packageScripts()['test:ci'])
+      .toBe('vitest run --config web/vitest.config.ts --testTimeout=15000');
+    expect(commands(workflow('ci.yml'))).toContain('npm run test:ci');
+    expect(commands(workflow('pages.yml'))).toContain('npm run test:ci');
   });
 });

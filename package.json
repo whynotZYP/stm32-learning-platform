@@ -10,6 +10,7 @@
     "build:device-firmware": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/firmware/build-device-test.ps1",
     "typecheck": "tsc -p web/tsconfig.json --noEmit && tsc -p tsconfig.scripts.json --noEmit",
     "test": "vitest run --config web/vitest.config.ts",
+    "test:ci": "vitest run --config web/vitest.config.ts --testTimeout=15000",
     "test:watch": "vitest --config web/vitest.config.ts",
     "test:e2e": "playwright test --config web/playwright.config.ts",
     "preview": "vite preview --config web/vite.config.ts",
