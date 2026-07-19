@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1, "id": "w06-oled-debug", "week": 6, "title": "OLED：把运行状态变成可见调试信息", "estimatedMinutes": 450,
+  "sourceCourseIds": ["09", "10"], "prerequisiteTagIds": ["gpio.input-bias", "debug.observation"], "targetTagIds": ["debug.observation"],
+  "objectives": ["解释 OLED 的像素与页寻址存储", "区分 I2C 与 SPI 的信号和地址方式", "把计数器、输入状态和诊断码显示为调试证据"],
+  "conceptPath": "curriculum/weeks/w06.md", "labIds": ["lab-w06-oled-debug"], "assessmentId": "assessment-w06",
+  "safety": ["接线、换模块或换跳线前必须断电，OLED 和 STM32 使用 3.3 V 逻辑。", "OLED、开发板和调试器必须共地；不要把不明 5 V 上拉直接接到 GPIO。", "本课只驱动低功耗显示模块；电机、舵机等负载必须独立供电并共地。"],
+  "detectionChecks": [{"mode":"automatic","action":"构建显示驱动工程","expectedEvidence":"ELF 与 API 检查","limitation":"构建不证明屏幕显示","applicable":true,"evidenceSource":"simulator","physicalHardware":false},{"mode":"semi-automatic","action":"用调试器观察显示缓冲区与 GPIO 时序","expectedEvidence":"设备寄存器和内存观察","limitation":"需要接板","applicable":true,"evidenceSource":"device","physicalHardware":true},{"mode":"manual","action":"观察 OLED 的计数、输入状态和诊断码","expectedEvidence":"屏幕照片与人工记录","limitation":"须核对模块型号","applicable":true,"evidenceSource":"manual","physicalHardware":true}]
+}

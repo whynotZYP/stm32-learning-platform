@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1, "id": "w08-tim-timebase", "week": 8, "title": "TIM：1 ms 节拍、1 s 事件与外部脉冲", "estimatedMinutes": 450,
+  "sourceCourseIds": ["13", "14"], "prerequisiteTagIds": ["tim.timebase", "exti.event-flow"], "targetTagIds": ["tim.timebase"],
+  "objectives": ["用 PSC/ARR 推导更新周期", "实现 TIM2 1 ms 节拍与非阻塞 1 s 事件", "区分内部时基和 TIM3 外部脉冲计数"],
+  "conceptPath": "curriculum/weeks/w08.md", "labIds": ["lab-w08-tim-timebase"], "assessmentId": "assessment-w08",
+  "safety": ["更改定时器相关跳线、传感器或编码器前必须断电，GPIO 使用 3.3 V 逻辑。", "外部脉冲源与 STM32 必须共地；不明 5 V 输出须先做电平转换。", "不使用 GPIO 直接带动电机或其他大负载；此类负载需要独立供电并共地。"],
+  "detectionChecks": [{"mode":"automatic","action":"构建两个定时器工程","expectedEvidence":"ELF 与寄存器配置检查","limitation":"构建不能证明频率或脉冲","applicable":true,"evidenceSource":"simulator","physicalHardware":false},{"mode":"semi-automatic","action":"观察 TIM2/TIM3 的 CNT、PSC、ARR、SR.UIF","expectedEvidence":"设备寄存器快照","limitation":"需连接实物","applicable":true,"evidenceSource":"device","physicalHardware":true},{"mode":"manual","action":"观察每秒事件并输入外部脉冲","expectedEvidence":"人工计数和接线照片","limitation":"现场确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}]
+}

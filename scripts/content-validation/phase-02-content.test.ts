@@ -1,0 +1,93 @@
+import { readFile, stat } from 'node:fs/promises';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const ROOT = process.cwd();
+
+const WEEKS = [
+  { week: 5, suffix: 'w05', id: 'w05-gpio-input', lab: 'lab-w05-gpio-input', assessment: 'assessment-w05', sources: ['07', '08'], project: 'w05-gpio-input' },
+  { week: 6, suffix: 'w06', id: 'w06-oled-debug', lab: 'lab-w06-oled-debug', assessment: 'assessment-w06', sources: ['09', '10'], project: 'w06-oled-debug' },
+  { week: 7, suffix: 'w07', id: 'w07-exti-events', lab: 'lab-w07-exti-events', assessment: 'assessment-w07', sources: ['11', '12'], project: 'w07-exti-events' },
+  { week: 8, suffix: 'w08', id: 'w08-tim-timebase', lab: 'lab-w08-tim-timebase', assessment: 'assessment-w08', sources: ['13', '14'], project: 'w08-tim-timebase' },
+] as const;
+
+async function text(path: string) { return readFile(join(ROOT, path), 'utf8'); }
+async function json(path: string): Promise<any> { return JSON.parse(await text(path)); }
+function totals(items: any[]) {
+  return Object.fromEntries(['concept', 'configuration', 'practical', 'reflection'].map((kind) =>
+    [kind, items.filter((item) => item.kind === kind).reduce((sum, item) => sum + item.maxScore, 0)]));
+}
+function checks(record: any) {
+  expect(record.detectionChecks.map((item: any) => item.mode).sort()).toEqual(['automatic', 'manual', 'semi-automatic']);
+  for (const item of record.detectionChecks) {
+    if (!item.applicable) expect(item.reason.trim()).not.toBe('');
+    if (item.evidenceSource === 'simulator') expect(item.physicalHardware).toBe(false);
+  }
+}
+
+describe('phase 2 curriculum contract', () => {
+  it('creates exact week, source, lab, assessment and firmware relationships', async () => {
+    for (const spec of WEEKS) {
+      const week = await json(`curriculum/weeks/${spec.suffix}.json`);
+      const lab = await json(`labs/manifests/${spec.lab}.json`);
+      const assessment = await json(`assessments/question-banks/${spec.assessment}.json`);
+      expect(week).toMatchObject({ id: spec.id, week: spec.week, sourceCourseIds: spec.sources, labIds: [spec.lab], assessmentId: spec.assessment });
+      expect((await text(`curriculum/weeks/${spec.suffix}.md`)).trim().length).toBeGreaterThan(1200);
+      expect(lab).toMatchObject({ id: spec.lab, lessonId: spec.id, firmwareProject: `firmware/lessons/${spec.project}` });
+      expect(assessment).toMatchObject({ id: spec.assessment, lessonId: spec.id });
+      expect(totals(assessment.items)).toEqual({ concept: 25, configuration: 25, practical: 35, reflection: 15 });
+      checks(week); checks(lab);
+      for (const entry of [`${spec.project}.ioc`, 'CMakeLists.txt', 'CMakePresets.json', 'Core/Src/main.c', 'Core/Src/stm32f1xx_it.c', 'App/app.c', 'App/app.h']) {
+        expect((await stat(join(ROOT, 'firmware/lessons', spec.project, entry))).isFile()).toBe(true);
+      }
+    }
+    const gate = await json('assessments/practicals/gate-02.json');
+    expect(gate).toMatchObject({ id: 'gate-02', phase: 2, lessonIds: WEEKS.map((item) => item.id) });
+    expect(totals(gate.items)).toEqual({ concept: 25, configuration: 25, practical: 35, reflection: 15 });
+  });
+
+  it('teaches the required failure analysis, safety, observations and gate evidence', async () => {
+    const pages = await Promise.all(WEEKS.map((item) => text(`curriculum/weeks/${item.suffix}.md`)));
+    expect(pages[0]).toMatch(/浮空|上拉|下拉/); expect(pages[0]).toMatch(/低有效|抖动|轮询/); expect(pages[0]).toMatch(/IDR/);
+    expect(pages[1]).toMatch(/OLED/); expect(pages[1]).toMatch(/像素|页/); expect(pages[1]).toMatch(/I2C.*SPI|SPI.*I2C/s); expect(pages[1]).toMatch(/0x3C/); expect(pages[1]).toMatch(/SCL.*SDA|SDA.*SCL/s);
+    expect(pages[2]).toMatch(/EXTI/); expect(pages[2]).toMatch(/挂起|pending|PR/); expect(pages[2]).toMatch(/优先级|NVIC/); expect(pages[2]).toMatch(/中断风暴/);
+    expect(pages[3]).toMatch(/PSC/); expect(pages[3]).toMatch(/ARR/); expect(pages[3]).toMatch(/CNT/); expect(pages[3]).toMatch(/UIF/); expect(pages[3]).toMatch(/TIM2/); expect(pages[3]).toMatch(/TIM3/);
+    for (const page of pages) { expect(page).toMatch(/3\.3\s*V/); expect(page).toMatch(/断电/); expect(page).toMatch(/共地/); expect(page).toMatch(/https:\/\/.*st\.com/i); }
+    const gate = JSON.stringify(await json('assessments/practicals/gate-02.json'));
+    expect(gate).toMatch(/非阻塞|不阻塞|不使用阻塞/); expect(gate).toMatch(/OLED|串口/); expect(gate).toMatch(/优先级/); expect(gate).toMatch(/挂起|pending/);
+  });
+});
+
+describe('phase 2 firmware boundaries', () => {
+  it('uses documented safe pins and builds event, display and timebase boundaries', async () => {
+    const w05 = await text('firmware/lessons/w05-gpio-input/Core/Inc/main.h');
+    const w05App = await text('firmware/lessons/w05-gpio-input/App/app.c');
+    const w06Gpio = await text('firmware/lessons/w06-oled-debug/Core/Src/gpio.c');
+    const w06App = await text('firmware/lessons/w06-oled-debug/App/app.c');
+    const w06Display = await text('firmware/lessons/w06-oled-debug/App/Display/display.h');
+    const w07It = await text('firmware/lessons/w07-exti-events/Core/Src/stm32f1xx_it.c');
+    const w07App = await text('firmware/lessons/w07-exti-events/App/app.h');
+    const w08Main = await text('firmware/lessons/w08-tim-timebase/Core/Src/main.c');
+    const w08App = await text('firmware/lessons/w08-tim-timebase/App/app.c');
+    expect(w05).toMatch(/BUTTON_Pin/); expect(w05).toMatch(/SENSOR_Pin/); expect(w05).toMatch(/BUZZER_Pin\s+GPIO_PIN_1/);
+    expect(w05App).toMatch(/HAL_GPIO_ReadPin\s*\(\s*SENSOR_GPIO_Port\s*,\s*SENSOR_Pin\s*\)/); expect(w05App).toMatch(/HAL_GPIO_WritePin\s*\(\s*BUZZER_GPIO_Port\s*,\s*BUZZER_Pin/);
+    expect(w06Gpio).toMatch(/GPIO_MODE_OUTPUT_OD/); expect(w06Gpio).toMatch(/OLED_SCL_Pin/); expect(w06Gpio).toMatch(/OLED_SDA_Pin/);
+    expect(w06Display).toMatch(/Display_Init\s*\(\s*void\s*\)/); expect(w06Display).toMatch(/Display_Clear\s*\(\s*void\s*\)/); expect(w06Display).toMatch(/Display_WriteLine\s*\(/); expect(w06Display).toMatch(/Display_Refresh\s*\(\s*void\s*\)/);
+    expect(w06App).toMatch(/Display_Init/); expect(w06App).toMatch(/Display_WriteLine/);
+    expect(w06App).toMatch(/HAL_GPIO_ReadPin\s*\(\s*DEBUG_INPUT_GPIO_Port\s*,\s*DEBUG_INPUT_Pin\s*\)/); expect(w06App).not.toMatch(/Input:unknown/);
+    expect(w07It).toMatch(/HAL_GPIO_EXTI_IRQHandler/); expect(w07It).toMatch(/App_On/); expect(w07App).toMatch(/App_On.*Event/);
+    expect(w08Main).toMatch(/MX_TIM2_Init/); expect(w08Main).toMatch(/Prescaler\s*=\s*71/); expect(w08Main).toMatch(/Period\s*=\s*999/); expect(w08App).toMatch(/App_OnTimerElapsed/); expect(w08App).toMatch(/TIM3/);
+  });
+
+  it('rejects key pin, IRQ, display and timer mutations', async () => {
+    const display = await text('firmware/lessons/w06-oled-debug/App/Display/display.h');
+    const irq = await text('firmware/lessons/w07-exti-events/Core/Src/stm32f1xx_it.c');
+    const timer = await text('firmware/lessons/w08-tim-timebase/Core/Src/main.c');
+    expect(display.replace('Display_Refresh', 'Refresh')).not.toMatch(/Display_Refresh\s*\(/);
+    expect(irq).toMatch(/if\s*\(\s*GPIO_Pin\s*==\s*BUTTON_Pin\s*\)\s*App_OnIrEvent\s*\(\s*\);/);
+    expect(irq).toMatch(/if\s*\(\s*GPIO_Pin\s*==\s*ENCODER_Pin\s*\)\s*App_OnEncoderEvent\s*\(/);
+    expect(irq.replace('App_OnIrEvent();', '')).not.toMatch(/App_OnIrEvent/);
+    expect(irq.replace(/App_OnEncoderEvent\s*\([^;]+;\s*/, '')).not.toMatch(/App_OnEncoderEvent/);
+    expect(timer.replace('htim2.Init.Period = 999', 'htim2.Init.Period = 998')).not.toMatch(/htim2\.Init\.Period\s*=\s*999/);
+  });
+});

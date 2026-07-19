@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1, "id": "w05-gpio-input", "week": 5, "title": "GPIO 输入：按键、传感器与去抖", "estimatedMinutes": 450,
+  "sourceCourseIds": ["07", "08"], "prerequisiteTagIds": ["gpio.output-mode"], "targetTagIds": ["gpio.input-bias"],
+  "objectives": ["解释浮空、上拉、下拉和低有效输入", "用轮询与状态变化检测实现去抖按键", "对照 IDR 与 HAL_GPIO_ReadPin 的结果定位输入故障"],
+  "conceptPath": "curriculum/weeks/w05.md", "labIds": ["lab-w05-gpio-input"], "assessmentId": "assessment-w05",
+  "safety": ["改线前必须断电；STM32 GPIO 只使用 3.3 V 逻辑。", "开发板、按键和数字传感器必须共地；未知模块不能把 5 V 输出送入 GPIO。", "LED 必须串联限流电阻，GPIO 不直接驱动未知电流的负载。"],
+  "detectionChecks": [{"mode":"automatic","action":"构建 HAL 输入工程","expectedEvidence":"ELF 和构建日志","limitation":"构建不能证明按键接线","applicable":true,"evidenceSource":"simulator","physicalHardware":false},{"mode":"semi-automatic","action":"调试器读取 IDR 并记录按键状态","expectedEvidence":"设备寄存器记录","limitation":"需真实接线","applicable":true,"evidenceSource":"device","physicalHardware":true},{"mode":"manual","action":"按下按键和遮挡光敏模块，观察 LED/蜂鸣器","expectedEvidence":"人工观察与照片","limitation":"现场确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}]
+}
