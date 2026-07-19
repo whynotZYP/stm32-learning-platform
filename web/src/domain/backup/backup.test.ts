@@ -104,4 +104,42 @@ describe('backup export and import', () => {
     committed.state.notes.otherWindow = 'mutated-error';
     expect(actual.notes.otherWindow).toBe('newer');
   });
+
+  it('treats a replace rejection as success when a follow-up load verifies the imported state', async () => {
+    const before = createDefaultState('2026-07-19T00:00:00.000Z');
+    const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 9, notes: { imported: 'keep' } };
+    let active = clone(before);
+    const repo: ProgressRepository = {
+      load: async () => clone(active), save: async () => undefined, snapshot: async () => clone(before),
+      replace: async (next) => { active = clone(next); throw new Error('late write error'); },
+    };
+    await expect(importBackup(exportBackup(incoming), repo)).resolves.toEqual(incoming);
+  });
+
+  it('keeps an ordinary replace rejection when follow-up load still equals the snapshot', async () => {
+    const before = createDefaultState('2026-07-19T00:00:00.000Z');
+    const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 9 };
+    const repo: ProgressRepository = {
+      load: async () => clone(before), save: async () => undefined, snapshot: async () => clone(before), replace: async () => { throw new Error('offline'); },
+    };
+    await expect(importBackup(exportBackup(incoming), repo)).rejects.toThrow('offline');
+  });
+
+  it('reports conflict after a rejected replace when a different valid state is present', async () => {
+    const before = createDefaultState('2026-07-19T00:00:00.000Z');
+    const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 9 };
+    const actual = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 10, notes: { otherWindow: 'newer' } };
+    const repo: ProgressRepository = {
+      load: async () => clone(actual), save: async () => undefined, snapshot: async () => clone(before), replace: async () => { throw new Error('late write error'); },
+    };
+    await expect(importBackup(exportBackup(incoming), repo)).rejects.toMatchObject({ kind: 'conflict', state: actual });
+  });
+
+  it('reports an unknown commit baseline after replace and follow-up load both reject', async () => {
+    const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 9 };
+    const repo: ProgressRepository = {
+      load: async () => { throw new Error('unavailable'); }, save: async () => undefined, snapshot: async () => createDefaultState(), replace: async () => { throw new Error('late write error'); },
+    };
+    await expect(importBackup(exportBackup(incoming), repo)).rejects.toMatchObject({ kind: 'commit-unknown', state: incoming });
+  });
 });

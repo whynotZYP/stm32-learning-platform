@@ -357,4 +357,41 @@ describe('ProgressProvider', () => {
     expect(progress().state).toEqual(initial);
     expect(progress().error).toBe('暂时无法恢复备份，原有学习进度未改变。');
   });
+
+  it('treats a replace rejection as restored when the follow-up load proves the imported state committed', async () => {
+    const initial = createDefaultState('2026-07-19T00:00:00.000Z');
+    const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 12, notes: { imported: 'keep' } };
+    let active = clone(initial);
+    const saved: LearnerState[] = [];
+    const repository: ProgressRepository = {
+      load: async () => clone(active), save: async (next) => { saved.push(clone(next)); }, snapshot: async () => clone(initial),
+      replace: async (next) => { active = clone(next); throw new Error('late write error'); },
+    };
+    const { progress } = await renderProgress(repository);
+    let result: unknown;
+    await act(async () => { result = await progress().restoreBackup(exportBackup(incoming)); });
+    expect(result).toBe('restored');
+    expect(progress().state).toEqual(incoming);
+    await act(async () => { await progress().saveNote('after', 'keeps imported'); });
+    expect(saved[0]).toMatchObject({ currentWeek: 12, notes: { imported: 'keep', after: 'keeps imported' } });
+  });
+
+  it('uses the imported baseline when a rejected replace cannot be followed by a verified load', async () => {
+    const initial = createDefaultState('2026-07-19T00:00:00.000Z');
+    const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 13, notes: { imported: 'keep' } };
+    let loads = 0;
+    const saved: LearnerState[] = [];
+    const repository: ProgressRepository = {
+      load: async () => { loads += 1; if (loads === 1) return clone(initial); throw new Error('unavailable'); },
+      save: async (next) => { saved.push(clone(next)); }, snapshot: async () => clone(initial), replace: async () => { throw new Error('late write error'); },
+    };
+    const { progress } = await renderProgress(repository);
+    let result: unknown;
+    await act(async () => { result = await progress().restoreBackup(exportBackup(incoming)); });
+    expect(result).toBe('restore-unknown');
+    expect(progress().state).toEqual(incoming);
+    expect(progress().error).toContain('恢复结果暂时无法确认');
+    await act(async () => { await progress().saveNote('after', 'keeps conservative baseline'); });
+    expect(saved[0]).toMatchObject({ currentWeek: 13, notes: { imported: 'keep', after: 'keeps conservative baseline' } });
+  });
 });

@@ -155,6 +155,26 @@ describe('NotesSettingsPage', () => {
     expect(screen.getByText('当前导出：第 14 周')).toBeInTheDocument();
   });
 
+  it('shows an unknown-commit warning without offering an immediate duplicate restore', async () => {
+    const initial = createDefaultState('2026-07-19T00:00:00.000Z');
+    const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 15 };
+    let loads = 0;
+    const repository: ProgressRepository = {
+      async load() { loads += 1; if (loads === 1) return clone(initial); throw new Error('unavailable'); },
+      save: async () => undefined, snapshot: async () => clone(initial), replace: async () => { throw new Error('late write error'); },
+    };
+    renderPage(repository, true);
+    const input = await screen.findByLabelText('导入备份');
+    await act(async () => { fireEvent.change(input, { target: { files: [new File([exportBackup(incoming)], 'progress.json')] } }); });
+    await screen.findByRole('status');
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    fireEvent.click(screen.getByRole('button', { name: '恢复已选备份' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('恢复结果暂时无法确认，已以备份作为当前基线');
+    expect(screen.queryByRole('button', { name: '恢复已选备份' })).not.toBeInTheDocument();
+    expect(screen.queryByText('原有学习进度未改变')).not.toBeInTheDocument();
+    expect(screen.getByText('当前导出：第 15 周')).toBeInTheDocument();
+  });
+
   it('prevents duplicate restore work while a confirmation is already restoring', async () => {
     const replace = deferred<void>();
     let active = createDefaultState('2026-07-19T00:00:00.000Z');

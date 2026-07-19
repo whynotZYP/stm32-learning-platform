@@ -5,14 +5,14 @@ import type { LearnerState } from '../progress/types';
 
 const clone = <T,>(value: T): T => structuredClone(value);
 
-export type BackupCommittedKind = 'committed-unverified' | 'conflict';
+export type BackupCommittedKind = 'committed-unverified' | 'conflict' | 'commit-unknown';
 
 export class BackupCommittedStateError extends Error {
   readonly kind: BackupCommittedKind;
   readonly state: LearnerState;
 
   constructor(kind: BackupCommittedKind, state: LearnerState) {
-    super(kind === 'conflict' ? '备份恢复后检测到进度冲突' : '备份已恢复但暂时无法验证');
+    super(kind === 'conflict' ? '备份恢复后检测到进度冲突' : kind === 'commit-unknown' ? '备份恢复结果暂时无法确认' : '备份已恢复但暂时无法验证');
     this.name = 'BackupCommittedStateError';
     this.kind = kind;
     this.state = clone(state);
@@ -49,8 +49,20 @@ export function exportBackup(state: LearnerState, now = new Date().toISOString()
 export async function importBackup(json: string, repository: ProgressRepository): Promise<LearnerState> {
   const parsed = BackupSchema.parse(JSON.parse(json));
   const incoming = clone(parsed.state);
-  await repository.snapshot();
-  await repository.replace(clone(incoming));
+  const before = clone(LearnerStateSchema.parse(clone(await repository.snapshot())));
+  try {
+    await repository.replace(clone(incoming));
+  } catch (replaceError) {
+    let loaded: LearnerState;
+    try {
+      loaded = clone(LearnerStateSchema.parse(clone(await repository.load())));
+    } catch {
+      throw new BackupCommittedStateError('commit-unknown', incoming);
+    }
+    if (semanticallyEqual(incoming, loaded)) return loaded;
+    if (semanticallyEqual(before, loaded)) throw replaceError;
+    throw new BackupCommittedStateError('conflict', loaded);
+  }
   try {
     const verified = clone(LearnerStateSchema.parse(clone(await repository.load())));
     if (!semanticallyEqual(incoming, verified)) throw new BackupCommittedStateError('conflict', verified);

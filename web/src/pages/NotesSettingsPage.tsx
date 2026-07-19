@@ -78,7 +78,7 @@ export function NotesSettingsPage() {
       if (result === 'restored') {
         setCandidate(undefined);
         setNotice('备份已恢复。');
-      } else if (result === 'restored-unverified') {
+      } else if (result === 'restored-unverified' || result === 'restore-unknown') {
         setCandidate(undefined);
       } else if (result === 'failed') {
         setError('恢复备份时出现问题，原有学习进度未改变。');

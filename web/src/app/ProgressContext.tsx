@@ -15,7 +15,7 @@ export interface ProgressActions {
   restoreBackup(json: string): Promise<RestoreBackupResult>;
 }
 
-export type RestoreBackupResult = 'restored' | 'restored-unverified' | 'conflict' | 'failed';
+export type RestoreBackupResult = 'restored' | 'restored-unverified' | 'conflict' | 'restore-unknown' | 'failed';
 
 export interface ProgressContextValue extends ProgressActions { state: LearnerState; loading: boolean; error: string | undefined; }
 
@@ -137,6 +137,10 @@ export function ProgressProvider({ repository, children }: { repository: Progres
         if (caught.kind === 'committed-unverified') {
           showError('备份已恢复但暂时无法验证，请刷新页面后确认。');
           return 'restored-unverified' as const;
+        }
+        if (caught.kind === 'commit-unknown') {
+          showError('恢复结果暂时无法确认，已以备份作为当前基线，请刷新确认。');
+          return 'restore-unknown' as const;
         }
         showError('检测到其他窗口的学习进度变化，已采用最新进度，请确认后再继续。');
         return 'conflict' as const;
