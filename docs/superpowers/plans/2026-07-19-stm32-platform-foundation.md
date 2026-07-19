@@ -15,6 +15,8 @@
 - The course has exactly 24 weeks and exactly 46 source IDs: `05`, `06-1`, `06-2`, and `07` through `49`.
 - Required topic tags include GPIO, EXTI, TIM, ADC, DMA, USART, I2C, SPI, RTC, PWR, WDG, and FLASH.
 - HAL is the mainline; LL/register and SPL migration metadata remain distinguishable.
+- Every lesson and lab uses exactly one shared `detectionChecks` record for each of `automatic`, `semi-automatic`, and `manual`; each record states action, expected evidence, limitation, applicability, and a reason when not applicable.
+- Core hardware topics retain applicable semi-automatic/device and manual checks; simulator evidence is never proof of physical hardware behavior.
 - Tests are written before implementation, verification output is inspected, and each task ends with a focused commit.
 
 ---
@@ -31,7 +33,7 @@
 - `web/src/App.tsx`: temporary course-map shell; later plans replace its presentation without changing content contracts.
 - `web/src/test/setup.ts`: Testing Library cleanup and DOM matchers.
 - `web/src/domain/content/types.ts`: TypeScript types inferred from schemas.
-- `web/src/domain/content/schemas.ts`: all runtime content contracts.
+- `web/src/domain/content/schemas.ts`: all runtime content contracts, including the shared lesson/lab `detectionChecks` contract.
 - `web/src/domain/content/loadCourseMap.ts`: load and validate the checked-in course map.
 - `curriculum/course-map.json`: authoritative 24-week and 46-source mapping.
 - `scripts/content-validation/validate-content.ts`: repository content validator and readable CLI report.
@@ -274,7 +276,7 @@ git commit -m "chore: bootstrap learning platform web app"
 
 **Interfaces:**
 - Consumes: Zod.
-- Produces: `CourseMapSchema`, `WeekManifestSchema`, `LessonManifestSchema`, `LabManifestSchema`, `AssessmentSchema`, `KnowledgeTagSchema`, and their inferred TypeScript types.
+- Produces: `CourseMapSchema`, `WeekManifestSchema`, `LessonManifestSchema`, `LabManifestSchema`, `DetectionCheckSchema`, `AssessmentSchema`, `KnowledgeTagSchema`, and their inferred TypeScript types.
 
 - [ ] **Step 1: Write failing schema tests for valid and unsafe content**
 
@@ -282,7 +284,7 @@ Create `web/src/domain/content/schemas.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest';
-import { CourseMapSchema, LessonManifestSchema } from './schemas';
+import { CourseMapSchema, LabManifestSchema, LessonManifestSchema } from './schemas';
 
 describe('content contracts', () => {
   it('accepts a lesson with objectives, evidence and safety text', () => {
@@ -300,6 +302,11 @@ describe('content contracts', () => {
       labIds: ['lab-w04-gpio-output'],
       assessmentId: 'assessment-w04',
       safety: ['LED 必须串联限流电阻。'],
+      detectionChecks: [
+        { mode: 'automatic', action: '运行 GPIO 回读检查', expectedEvidence: '串口返回引脚高低电平', limitation: '不能证明 LED 亮度', applicable: true },
+        { mode: 'semi-automatic', action: '按下按键并确认计数变化', expectedEvidence: '计数和观察确认', limitation: '需要学习者确认现象', applicable: true },
+        { mode: 'manual', action: '观察 LED 是否点亮', expectedEvidence: '学习者勾选观察结果', limitation: '不能由模拟器或构建结果证明', applicable: true },
+      ],
     });
     expect(result.success).toBe(true);
   });
@@ -319,12 +326,18 @@ describe('content contracts', () => {
       labIds: ['lab-w04-gpio-output'],
       assessmentId: 'assessment-w04',
       safety: [],
+      detectionChecks: [],
     });
     expect(result.success).toBe(false);
   });
 
   it('rejects a course map with fewer than 24 weeks', () => {
     expect(CourseMapSchema.safeParse({ schemaVersion: 1, sourceCourseIds: [], requiredTagIds: [], weeks: [] }).success).toBe(false);
+  });
+
+  it('rejects missing modes and a non-applicable check without a reason', () => {
+    expect(LessonManifestSchema.safeParse({ schemaVersion: 1, id: 'w01-foundations', week: 1, title: '基础', estimatedMinutes: 180, sourceCourseIds: ['05'], prerequisiteTagIds: [], targetTagIds: ['foundation.binary'], objectives: ['能够解释二进制与十六进制的关系'], conceptPath: 'curriculum/weeks/w01.md', labIds: ['lab-w01-breadboard'], assessmentId: 'assessment-w01', safety: ['断电后再检查接线。'], detectionChecks: [{ mode: 'automatic', action: '运行桌面练习', expectedEvidence: '测试输出', limitation: '不涉及物理硬件', applicable: false }] }).success).toBe(false);
+    expect(LabManifestSchema.safeParse({ schemaVersion: 1, id: 'lab-w01-breadboard', lessonId: 'w01-foundations', title: '面包板检查', hardware: ['面包板'], wiringChecklist: ['断电后检查电源轨与导线'], safety: ['断电后再接线。'], expectedObservations: ['连接路径完整'], faultTasks: ['断开一根导线后定位'], detectionChecks: [] }).success).toBe(false);
   });
 });
 ```
@@ -353,6 +366,25 @@ export const KnowledgeTagSchema = z.object({
   prerequisiteTagIds: z.array(Id),
 });
 
+export const DetectionModeSchema = z.enum(['automatic', 'semi-automatic', 'manual']);
+export const DetectionCheckSchema = z.object({
+  mode: DetectionModeSchema,
+  action: z.string().min(8),
+  expectedEvidence: z.string().min(4),
+  limitation: z.string().min(4),
+  applicable: z.boolean(),
+  reason: z.string().min(1).optional(),
+}).superRefine((check, context) => {
+  if (!check.applicable && !check.reason?.trim()) context.addIssue({ code: z.ZodIssueCode.custom, path: ['reason'], message: '不适用时必须说明原因' });
+});
+
+const DetectionChecksSchema = z.array(DetectionCheckSchema).length(3).superRefine((checks, context) => {
+  const modes = checks.map((check) => check.mode);
+  if (new Set(modes).size !== 3 || !['automatic', 'semi-automatic', 'manual'].every((mode) => modes.includes(mode as typeof checks[number]['mode']))) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: '必须分别声明 automatic、semi-automatic、manual 三种检测方式' });
+  }
+});
+
 export const LessonManifestSchema = z.object({
   schemaVersion: z.literal(1),
   id: Id,
@@ -367,6 +399,7 @@ export const LessonManifestSchema = z.object({
   labIds: z.array(Id),
   assessmentId: Id,
   safety: z.array(z.string().min(8)).min(1),
+  detectionChecks: DetectionChecksSchema,
 });
 
 export const WeekManifestSchema = z.object({
@@ -389,7 +422,7 @@ export const LabManifestSchema = z.object({
   safety: z.array(z.string().min(8)).min(1),
   expectedObservations: z.array(z.string().min(4)).min(1),
   faultTasks: z.array(z.string().min(8)).min(1),
-  evidenceModes: z.array(z.enum(['automatic', 'semi-automatic', 'manual'])).min(1),
+  detectionChecks: DetectionChecksSchema,
   firmwareProject: RepositoryPath.optional(),
 });
 
@@ -425,6 +458,7 @@ import type { z } from 'zod';
 import type {
   AssessmentSchema,
   CourseMapSchema,
+  DetectionCheckSchema,
   KnowledgeTagSchema,
   LabManifestSchema,
   LessonManifestSchema,
@@ -433,6 +467,7 @@ import type {
 
 export type Assessment = z.infer<typeof AssessmentSchema>;
 export type CourseMap = z.infer<typeof CourseMapSchema>;
+export type DetectionCheck = z.infer<typeof DetectionCheckSchema>;
 export type KnowledgeTag = z.infer<typeof KnowledgeTagSchema>;
 export type LabManifest = z.infer<typeof LabManifestSchema>;
 export type LessonManifest = z.infer<typeof LessonManifestSchema>;
@@ -448,7 +483,7 @@ npm test -- --run web/src/domain/content/schemas.test.ts
 npm run typecheck
 ```
 
-Expected: three schema tests pass and TypeScript exits 0.
+Expected: four schema tests pass and TypeScript exits 0.
 
 - [ ] **Step 5: Commit the contracts**
 

@@ -4,7 +4,7 @@
 
 **Goal:** Let the learning site connect to STM32 through CH340, run bounded objective checks, record honest evidence, and fall back cleanly when Web Serial or hardware is unavailable.
 
-**Architecture:** A transport-independent JSON Lines protocol separates device semantics from browser permissions. The same runner uses either `BrowserSerialTransport` or `SimulatorTransport`; a catalog declares safety, wiring, firmware, timeout, and proof mode for every test, and only the evidence mapper may convert device results into learning records.
+**Architecture:** A transport-independent JSON Lines protocol separates device semantics from browser permissions. The same runner uses either `BrowserSerialTransport` or `SimulatorTransport`; the catalog consumes the foundation plan's shared `DetectionCheck` contract for each test rather than defining a second detection model, and only the evidence mapper may convert device results into learning records.
 
 **Tech Stack:** TypeScript, Zod, Web Serial, Vitest, Testing Library, Playwright, STM32F1 HAL, small bounded C parser, CMake/Ninja.
 
@@ -14,7 +14,7 @@
 - Default link is USART1: PA9 TX → CH340 RX, PA10 RX ← CH340 TX, plus GND; the UI requires confirmation of 3.3 V TTL and one selected power source.
 - Protocol is UTF-8 JSON Lines, version `1`, maximum input line 512 bytes, one request ID per result.
 - Unknown protocol versions/tests, malformed input, busy state, timeout, and disconnected transport produce explicit structured errors.
-- Automatic device evidence may prove values/data flow only; LED brightness, sound, motor/servo motion, real current, and true power-loss behavior require manual evidence.
+- Automatic device evidence may prove values/data flow only; LED brightness, sound, motor/servo motion, real current, and true power-loss behavior require manual evidence. Catalog detection checks use the shared `mode`, action, expected evidence, limitation, applicability, and non-applicable-reason fields.
 - W25Q64 and internal FLASH tests operate only on documented reserved regions and restore previous data when applicable.
 - Simulator results always carry `simulated: true` and map to `pending`, never `auto-pass`.
 - Every task is test-first and ends with a focused commit.
@@ -192,18 +192,18 @@ i2c.mpu6050-id, spi.flash-id, spi.flash-roundtrip, rtc.bkp,
 wdg.reset-cause, flash.reserved-page, pwr.sleep-wake
 ```
 
-Assert every entry declares `proofMode`, `timeoutMs`, `firmwareVersion`, `wiring`, `safety`, and `lessonTagIds`; both flash-write tests mention their reserved region and restore behavior.
+Assert every entry declares `detectionCheck`, `timeoutMs`, `firmwareVersion`, `wiring`, `safety`, and `lessonTagIds`; `detectionCheck` is the shared foundation `DetectionCheck` shape and each lesson-linked mode is declared by the curriculum record. Both flash-write tests mention their reserved region and restore behavior.
 
 - [ ] **Step 3: Implement the catalog as immutable data**
 
 Create `testCatalog.ts` with:
 
 ```ts
-export type ProofMode = 'automatic' | 'semi-automatic' | 'manual';
+import type { DetectionCheck } from '../../domain/content/types';
 export interface DeviceTestDefinition {
   id: string;
   title: string;
-  proofMode: ProofMode;
+  detectionCheck: DetectionCheck;
   timeoutMs: number;
   firmwareVersion: 'device-test-v1';
   wiring: string[];
@@ -214,7 +214,7 @@ export const DEVICE_TESTS: readonly DeviceTestDefinition[];
 export function getDeviceTest(id: string): DeviceTestDefinition;
 ```
 
-Use automatic mode for hello/chip ID/GPIO loopback/PWM capture/DMA/USART/I2C ID/SPI ID and roundtrip/FLASH reserved page. Use semi-automatic for EXTI, ADC movement, RTC/BKP, WDG, and PWR. No catalog entry claims automatic LED, sound, servo, or motor proof.
+Use `detectionCheck.mode: 'automatic'` for hello/chip ID/GPIO loopback/PWM capture/DMA/USART/I2C ID/SPI ID and roundtrip/FLASH reserved page. Use `semi-automatic` for EXTI, ADC movement, RTC/BKP, WDG, and PWR. No catalog entry claims automatic LED, sound, servo, or motor proof; each check supplies the shared action, evidence, limitation, and applicability fields.
 
 - [ ] **Step 4: Write failing simulator scenario tests**
 
@@ -310,7 +310,7 @@ Create `deviceResultToEvidence.ts`:
 ```ts
 export function deviceResultToEvidence(outcome: DeviceRunOutcome, lessonId: string): EvidenceRecord {
   const simulated = outcome.transportKind === 'simulator';
-  const automatic = outcome.definition.proofMode === 'automatic';
+  const automatic = outcome.definition.detectionCheck.mode === 'automatic' && outcome.definition.detectionCheck.applicable;
   const passed = outcome.result.status === 'pass';
   const status = simulated || !automatic ? 'pending' : passed ? 'auto-pass' : 'failed';
   return {

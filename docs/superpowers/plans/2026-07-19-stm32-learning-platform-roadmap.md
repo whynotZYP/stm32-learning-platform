@@ -26,14 +26,14 @@
 ## Plan Order and Completion Gates
 
 1. `2026-07-19-stm32-platform-foundation.md`
-   - Produces the runnable repository, content contracts, 24-week source map, validator, and CI baseline.
+   - Produces the runnable repository, shared lesson/lab `detectionChecks` content contract, 24-week source map, validator, and CI baseline.
    - Gate: `npm test`, `npm run validate:content`, `npm run typecheck`, and `npm run build` pass.
 2. `2026-07-19-stm32-learning-core.md`
    - Produces progress storage, scoring, phase gates, remediation, lesson/assessment UI, notes, and backup.
    - Gate: unit, component, and core Playwright journeys pass.
 3. `2026-07-19-stm32-curriculum-firmware.md`
    - Produces detailed 24-week content, all rubrics and labs, CubeMX projects, and firmware build matrix.
-   - Gate: all 46 source IDs are covered and every required peripheral has concept, lab, assessment, and fault task.
+   - Gate: all 46 source IDs are covered by the versioned source API inventory, every unique non-empty SPL symbol maps exactly once, every lesson/lab has all three `detectionChecks` modes, and every required peripheral has concept, lab, assessment, and fault task.
 4. `2026-07-19-stm32-device-console.md`
    - Produces the JSON Lines protocol, simulator, Web Serial console, evidence integration, and device-test firmware.
    - Gate: simulator fault matrix and firmware build pass; real hardware remains explicitly pending until connected.
@@ -49,6 +49,16 @@ The five plans use these names consistently:
 export type EvidenceKind = 'concept' | 'configuration' | 'practical' | 'reflection';
 export type EvidenceStatus = 'auto-pass' | 'manual-confirmed' | 'pending' | 'failed';
 export type MasteryBand = 'mastered' | 'review' | 'remediate' | 'relearn';
+
+export type DetectionMode = 'automatic' | 'semi-automatic' | 'manual';
+export interface DetectionCheck {
+  mode: DetectionMode;
+  action: string;
+  expectedEvidence: string;
+  limitation: string;
+  applicable: boolean;
+  reason?: string;
+}
 
 export interface EvidenceRecord {
   id: string;
@@ -90,6 +100,8 @@ export interface DeviceTransport {
 | Web Serial, simulator, safety, honest evidence | Device Console Tasks 1–8 | protocol, failure matrix, UI, host-C and ARM builds |
 | Offline site, Pages, learner docs | Release Tasks 1–3 | offline E2E, workflows, documentation contracts |
 | Requirement audit, package, physical verification | Release Tasks 4–6 | evidence matrix, ZIP smoke test, hardware JSON |
+
+The Foundation shared `detectionChecks` contract is the sole automatic/semi-automatic/manual model: Curriculum validates all three modes and the inventory-backed SPL map, Device Console consumes it for device checks, and Release audits it without redefining it.
 
 Every design section has one owning task and one stated evidence source; later plans may consume that result but must not redefine it.
 
