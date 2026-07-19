@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "tags": [
+    { "schemaVersion": 1, "id": "foundation.electricity", "title": "电学与电流路径", "plainLanguage": "理解电压、电流、电阻以及电流必须沿完整回路流动。", "prerequisiteTagIds": [] },
+    { "schemaVersion": 1, "id": "foundation.binary", "title": "二进制与位操作", "plainLanguage": "理解二进制、十六进制、位编号以及掩码如何改变数据。", "prerequisiteTagIds": [] },
+    { "schemaVersion": 1, "id": "c.control-flow", "title": "C 语言控制流程", "plainLanguage": "用表达式、分支、循环和函数把一个任务拆成明确步骤。", "prerequisiteTagIds": ["foundation.binary"] },
+    { "schemaVersion": 1, "id": "c.memory", "title": "C 语言内存模型", "plainLanguage": "理解类型、结构体、指针与地址如何对应内存中的数据。", "prerequisiteTagIds": ["c.control-flow"] },
+    { "schemaVersion": 1, "id": "mcu.memory-map", "title": "单片机内存映射", "plainLanguage": "理解存储器和外设寄存器为什么能通过固定地址访问。", "prerequisiteTagIds": ["c.memory"] },
+    { "schemaVersion": 1, "id": "toolchain.build-debug", "title": "构建烧录与调试链", "plainLanguage": "理解 CubeMX、CMake、编译器、烧录器和调试器怎样协作。", "prerequisiteTagIds": ["c.control-flow"] },
+    { "schemaVersion": 1, "id": "gpio.output-mode", "title": "GPIO 输出模式", "plainLanguage": "理解推挽、开漏输出以及引脚驱动电流时经过的完整路径。", "prerequisiteTagIds": ["foundation.electricity", "mcu.memory-map"] },
+    { "schemaVersion": 1, "id": "gpio.input-bias", "title": "GPIO 输入偏置", "plainLanguage": "理解浮空、上拉和下拉输入为何会得到不同且稳定的电平。", "prerequisiteTagIds": ["foundation.electricity", "gpio.output-mode"] },
+    { "schemaVersion": 1, "id": "debug.observation", "title": "调试观察与证据", "plainLanguage": "用断点、监视、寄存器、屏幕和串口留下可复核的运行证据。", "prerequisiteTagIds": ["toolchain.build-debug"] },
+    { "schemaVersion": 1, "id": "nvic.priority", "title": "中断优先级", "plainLanguage": "理解多个中断同时出现时的响应顺序、抢占与优先级分组。", "prerequisiteTagIds": ["mcu.memory-map"] },
+    { "schemaVersion": 1, "id": "exti.event-flow", "title": "外部中断事件流", "plainLanguage": "跟踪边沿到挂起位、服务函数再到清除标志的完整过程。", "prerequisiteTagIds": ["gpio.input-bias", "nvic.priority"] },
+    { "schemaVersion": 1, "id": "tim.timebase", "title": "定时器时基", "plainLanguage": "用时钟、预分频、自动重装和更新事件得到确定的时间间隔。", "prerequisiteTagIds": ["foundation.binary", "nvic.priority"] },
+    { "schemaVersion": 1, "id": "tim.pwm", "title": "定时器 PWM", "plainLanguage": "理解并计算 PWM 频率、占空比、极性和输出比较路径。", "prerequisiteTagIds": ["tim.timebase", "gpio.output-mode"] },
+    { "schemaVersion": 1, "id": "tim.capture", "title": "定时器输入捕获", "plainLanguage": "记录输入边沿时间戳，并由差值测量频率与占空比。", "prerequisiteTagIds": ["tim.timebase", "gpio.input-bias"] },
+    { "schemaVersion": 1, "id": "tim.encoder", "title": "定时器编码器接口", "plainLanguage": "根据正交信号的相位关系判断旋转方向并累计位置。", "prerequisiteTagIds": ["tim.capture"] },
+    { "schemaVersion": 1, "id": "adc.sampling", "title": "ADC 采样与量化", "plainLanguage": "理解模拟量的采样、量化、对齐、校准和电压换算过程。", "prerequisiteTagIds": ["foundation.electricity", "tim.timebase"] },
+    { "schemaVersion": 1, "id": "dma.transfer", "title": "DMA 数据搬运", "plainLanguage": "让外设与内存直接交换数据，减少处理器逐项复制的负担。", "prerequisiteTagIds": ["c.memory", "mcu.memory-map"] },
+    { "schemaVersion": 1, "id": "usart.physical-frame", "title": "USART 电气与帧", "plainLanguage": "理解电平、波特率以及起始位、数据位和停止位组成的帧。", "prerequisiteTagIds": ["foundation.binary", "gpio.output-mode"] },
+    { "schemaVersion": 1, "id": "usart.packet", "title": "USART 数据包", "plainLanguage": "用边界、长度、校验和超时把字节流组织成可靠的数据包。", "prerequisiteTagIds": ["usart.physical-frame", "exti.event-flow"] },
+    { "schemaVersion": 1, "id": "i2c.protocol", "title": "I2C 通信协议", "plainLanguage": "理解开漏总线、地址、应答以及起始停止条件的时序。", "prerequisiteTagIds": ["gpio.output-mode", "usart.packet"] },
+    { "schemaVersion": 1, "id": "i2c.mpu6050", "title": "I2C 读取 MPU6050", "plainLanguage": "依据传感器寄存器表读取并组合加速度和角速度数据。", "prerequisiteTagIds": ["i2c.protocol", "debug.observation"] },
+    { "schemaVersion": 1, "id": "spi.protocol", "title": "SPI 通信协议", "plainLanguage": "理解时钟极性相位、片选和全双工移位数据的过程。", "prerequisiteTagIds": ["foundation.binary", "gpio.output-mode"] },
+    { "schemaVersion": 1, "id": "spi.w25q64", "title": "SPI 访问 W25Q64", "plainLanguage": "理解芯片识别、写使能以及页编程和扇区擦除限制。", "prerequisiteTagIds": ["spi.protocol", "c.memory"] },
+    { "schemaVersion": 1, "id": "rtc.time", "title": "RTC 与时间表示", "plainLanguage": "理解 Unix 时间、实时时钟计数器和备份域的保持方式。", "prerequisiteTagIds": ["tim.timebase", "c.memory"] },
+    { "schemaVersion": 1, "id": "pwr.low-power", "title": "低功耗与唤醒", "plainLanguage": "比较睡眠、停止和待机模式，并理解对应的唤醒来源。", "prerequisiteTagIds": ["rtc.time", "exti.event-flow"] },
+    { "schemaVersion": 1, "id": "wdg.recovery", "title": "看门狗与故障恢复", "plainLanguage": "理解独立和窗口看门狗怎样发现卡死并留下复位原因。", "prerequisiteTagIds": ["tim.timebase", "debug.observation"] },
+    { "schemaVersion": 1, "id": "flash.persistence", "title": "FLASH 持久化", "plainLanguage": "理解擦除、编程、对齐、保留页和芯片标识读取的边界。", "prerequisiteTagIds": ["c.memory", "mcu.memory-map"] },
+    { "schemaVersion": 1, "id": "system.integration", "title": "嵌入式系统集成", "plainLanguage": "把感知、通信、存储、显示、时间和故障恢复组合为完整系统。", "prerequisiteTagIds": ["gpio.output-mode", "exti.event-flow", "tim.pwm", "tim.capture", "adc.sampling", "dma.transfer", "usart.packet", "i2c.mpu6050", "spi.w25q64", "rtc.time", "pwr.low-power", "wdg.recovery", "flash.persistence"] }
+  ]
+}

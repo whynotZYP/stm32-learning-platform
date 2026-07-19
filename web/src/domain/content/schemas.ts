@@ -6,8 +6,8 @@ const RepositoryPath = z.string().min(1).refine((value) => !value.includes('..')
 export const KnowledgeTagSchema = z.object({
   schemaVersion: z.literal(1),
   id: Id,
-  title: z.string().min(2),
-  plainLanguage: z.string().min(10),
+  title: z.string().min(2).regex(/\p{Script=Han}/u, '标题必须包含中文'),
+  plainLanguage: z.string().min(10).regex(/\p{Script=Han}/u, '通俗说明必须包含中文'),
   prerequisiteTagIds: z.array(Id),
 });
 
@@ -54,6 +54,8 @@ export const LessonManifestSchema = z.object({
   assessmentId: Id,
   safety: z.array(z.string().min(8)).min(1),
   detectionChecks: DetectionChecksSchema,
+  remediationPaths: z.array(RepositoryPath).optional(),
+  extensionPaths: z.array(RepositoryPath).optional(),
 });
 
 export const WeekManifestSchema = z.object({
@@ -95,6 +97,34 @@ export const AssessmentSchema = z.object({
   id: Id,
   lessonId: Id,
   items: z.array(AssessmentItemSchema).min(4),
+});
+
+export const RemediationManifestSchema = z.object({
+  schemaVersion: z.literal(1),
+  id: Id,
+  title: z.string().min(2),
+  targetTagIds: z.array(Id).min(1),
+  estimatedMinutes: z.number().int().min(20).max(30),
+  contentPath: RepositoryPath,
+  returnLessonId: Id,
+});
+
+export const ExtensionManifestSchema = z.object({
+  schemaVersion: z.literal(1),
+  id: Id,
+  title: z.string().min(2),
+  requiredTagIds: z.array(Id).min(1),
+  contentPath: RepositoryPath,
+});
+
+export const PracticalGateSchema = z.object({
+  schemaVersion: z.literal(1),
+  id: Id,
+  phase: z.number().int().min(1).max(6),
+  title: z.string().min(2),
+  lessonIds: z.array(Id).min(1),
+  requiredTagIds: z.array(Id).min(1),
+  items: z.array(AssessmentItemSchema).min(1),
 });
 
 export const CourseMapSchema = z.object({

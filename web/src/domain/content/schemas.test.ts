@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { CourseMapSchema, LabManifestSchema, LessonManifestSchema } from './schemas';
+import {
+  CourseMapSchema,
+  ExtensionManifestSchema,
+  KnowledgeTagSchema,
+  LabManifestSchema,
+  LessonManifestSchema,
+  PracticalGateSchema,
+  RemediationManifestSchema,
+} from './schemas';
 
 describe('content contracts', () => {
   it('accepts a lesson with objectives, evidence and safety text', () => {
@@ -66,5 +74,19 @@ describe('content contracts', () => {
     expect(LessonManifestSchema.safeParse({ schemaVersion: 1, id: 'w01-foundations', week: 1, title: '基础', estimatedMinutes: 180, sourceCourseIds: ['05'], prerequisiteTagIds: [], targetTagIds: ['foundation.binary'], objectives: ['能够解释二进制与十六进制的关系'], conceptPath: 'curriculum/weeks/w01.md', labIds: ['lab-w01-breadboard'], assessmentId: 'assessment-w01', safety: ['断电后再检查接线。'], detectionChecks: [{ mode: 'automatic', action: '运行桌面练习', expectedEvidence: '测试输出', limitation: '不涉及物理硬件', applicable: false, evidenceSource: 'simulator', physicalHardware: false }] }).success).toBe(false);
     expect(LessonManifestSchema.safeParse({ schemaVersion: 1, id: 'w01-foundations', week: 1, title: '基础', estimatedMinutes: 180, sourceCourseIds: ['05'], prerequisiteTagIds: [], targetTagIds: ['foundation.binary'], objectives: ['能够解释二进制与十六进制的关系'], conceptPath: 'curriculum/weeks/w01.md', labIds: ['lab-w01-breadboard'], assessmentId: 'assessment-w01', safety: ['断电后再检查接线。'], detectionChecks: [{ mode: 'automatic', action: '运行模拟器检查', expectedEvidence: '模拟器日志', limitation: '不能证明物理硬件', applicable: true, evidenceSource: 'simulator', physicalHardware: true, reason: '故意构造无效物理声明' }, { mode: 'semi-automatic', action: '设备检查', expectedEvidence: '设备日志', limitation: '需确认', applicable: true, evidenceSource: 'device', physicalHardware: true }, { mode: 'manual', action: '手动观察', expectedEvidence: '观察记录', limitation: '主观确认', applicable: true, evidenceSource: 'manual', physicalHardware: true }] }).success).toBe(false);
     expect(LabManifestSchema.safeParse({ schemaVersion: 1, id: 'lab-w01-breadboard', lessonId: 'w01-foundations', title: '面包板检查', hardware: ['面包板'], wiringChecklist: ['断电后检查电源轨与导线'], safety: ['断电后再接线。'], expectedObservations: ['连接路径完整'], faultTasks: ['断开一根导线后定位'], detectionChecks: [] }).success).toBe(false);
+  });
+
+  it('accepts remediation, extension and practical gate contracts', () => {
+    expect(RemediationManifestSchema.safeParse({ schemaVersion: 1, id: 'concept-breakdown', title: '概念拆解', targetTagIds: ['gpio.output-mode'], estimatedMinutes: 25, contentPath: 'curriculum/remediation/concept-breakdown.md', returnLessonId: 'w04-gpio-output' }).success).toBe(true);
+    expect(ExtensionManifestSchema.safeParse({ schemaVersion: 1, id: 'freertos', title: 'FreeRTOS 路线', requiredTagIds: ['system.integration'], contentPath: 'curriculum/extensions/freertos.md' }).success).toBe(true);
+    expect(PracticalGateSchema.safeParse({ schemaVersion: 1, id: 'gate-01', phase: 1, title: '第一阶段实践', lessonIds: ['w01-foundations'], requiredTagIds: ['gpio.output-mode'], items: [{ id: 'gate-01-practical', kind: 'practical', prompt: '完成阶段综合实践并提交可复现证据。', tagIds: ['gpio.output-mode'], maxScore: 100, rubric: ['证据完整'] }] }).success).toBe(true);
+  });
+
+  it('rejects repository paths that escape the repository', () => {
+    expect(RemediationManifestSchema.safeParse({ schemaVersion: 1, id: 'unsafe', title: '不安全路径', targetTagIds: ['gpio.output-mode'], estimatedMinutes: 25, contentPath: '../outside.md', returnLessonId: 'w04-gpio-output' }).success).toBe(false);
+  });
+
+  it('requires a Chinese title and plain-language explanation for knowledge tags', () => {
+    expect(KnowledgeTagSchema.safeParse({ schemaVersion: 1, id: 'gpio.output-mode', title: 'GPIO output', plainLanguage: 'This explanation is long enough but is not Chinese.', prerequisiteTagIds: [] }).success).toBe(false);
   });
 });
