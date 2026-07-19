@@ -2,6 +2,7 @@
 /node_modules/
 /dist/
 /firmware/lessons/*/build/
+/firmware/lessons/*/build-fresh/
 work/
 playwright-report/
 test-results/
