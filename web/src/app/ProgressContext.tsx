@@ -17,6 +17,9 @@ export interface ProgressContextValue extends ProgressActions { state: LearnerSt
 const ProgressContext = createContext<ProgressContextValue | undefined>(undefined);
 
 export function ProgressProvider({ repository, children }: { repository: ProgressRepository; children: ReactNode }) {
+  const repositoryRef = useRef(repository);
+  if (repositoryRef.current !== repository) throw new Error('ProgressProvider 的 repository 在挂载后不能更换。');
+  const boundRepository = repositoryRef.current;
   const stateRef = useRef<LearnerState | null>(null);
   if (!stateRef.current) stateRef.current = clone(createDefaultState());
   const [state, setState] = useState<LearnerState>(() => clone(stateRef.current!));
@@ -42,7 +45,7 @@ export function ProgressProvider({ repository, children }: { repository: Progres
       startedRef.current = true;
       void (async () => {
         try {
-          publish(clone(await repository.load()));
+          publish(clone(await boundRepository.load()));
           clearError();
         } catch {
           showError('暂时无法读取本机学习进度，请刷新页面后重试。');
@@ -53,7 +56,7 @@ export function ProgressProvider({ repository, children }: { repository: Progres
       })();
     }
     return () => { mountedRef.current = false; };
-  }, [repository, publish, clearError, showError]);
+  }, [boundRepository, publish, clearError, showError]);
 
   const enqueue = useCallback((operation: () => Promise<void>) => initialReadyRef.current!.then(() => {
     const task = queueRef.current.then(operation, operation).catch(() => showError('暂时无法保存学习进度，请稍后再试。'));
@@ -64,35 +67,40 @@ export function ProgressProvider({ repository, children }: { repository: Progres
   const save = useCallback(async (next: LearnerState) => {
     const committed = clone(next);
     try {
-      await repository.save(clone(committed));
+      await boundRepository.save(clone(committed));
       publish(committed);
       clearError();
     } catch {
       showError('暂时无法保存学习进度，请稍后再试。');
     }
-  }, [repository, publish, clearError, showError]);
+  }, [boundRepository, publish, clearError, showError]);
 
   const recordEvidence = useCallback((record: EvidenceRecord) => {
     const incoming = clone(record);
     return enqueue(async () => save({ ...clone(stateRef.current!), evidence: [...stateRef.current!.evidence, incoming], updatedAt: new Date().toISOString() }));
   }, [enqueue, save]);
   const saveNote = useCallback((lessonId: string, markdown: string) => enqueue(async () => save({ ...clone(stateRef.current!), notes: { ...stateRef.current!.notes, [lessonId]: markdown }, updatedAt: new Date().toISOString() })), [enqueue, save]);
-  const setCurrentWeek = useCallback((week: number) => {
-    if (!Number.isInteger(week) || week < 1 || week > 24) { showError('周编号必须在 1 到 24 之间。'); return Promise.resolve(); }
-    return enqueue(async () => save({ ...clone(stateRef.current!), currentWeek: week, updatedAt: new Date().toISOString() }));
-  }, [enqueue, save, showError]);
+  const setCurrentWeek = useCallback((week: number) => enqueue(async () => {
+    if (!Number.isInteger(week) || week < 1 || week > 24) { showError('周编号必须在 1 到 24 之间。'); return; }
+    await save({ ...clone(stateRef.current!), currentWeek: week, updatedAt: new Date().toISOString() });
+  }), [enqueue, save, showError]);
   const replaceState = useCallback((next: LearnerState) => {
     const incoming = clone(next);
     return enqueue(async () => {
       try {
-        await repository.replace(clone(incoming));
-        publish(clone(await repository.load()));
-        clearError();
+        await boundRepository.replace(clone(incoming));
+        publish(incoming);
+        try {
+          publish(clone(await boundRepository.load()));
+          clearError();
+        } catch {
+          showError('学习进度已保存，但暂时无法重新读取验证，请刷新页面后确认。');
+        }
       } catch {
         showError('暂时无法替换学习进度，请刷新页面后重试。');
       }
     });
-  }, [enqueue, repository, publish, clearError, showError]);
+  }, [enqueue, boundRepository, publish, clearError, showError]);
 
   const value = useMemo<ProgressContextValue>(() => ({ state, loading, error, recordEvidence, saveNote, setCurrentWeek, replaceState }), [state, loading, error, recordEvidence, saveNote, setCurrentWeek, replaceState]);
   return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;

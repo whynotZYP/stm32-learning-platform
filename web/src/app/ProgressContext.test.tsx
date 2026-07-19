@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDefaultState } from '../domain/progress/defaultState';
@@ -147,5 +148,56 @@ describe('ProgressProvider', () => {
     const repository: ProgressRepository = { load: async () => { throw new Error('unavailable'); }, save: async () => undefined, snapshot: async () => createDefaultState(), replace: async () => undefined };
     const { progress } = await renderProgress(repository);
     expect(progress().error).toBe('暂时无法读取本机学习进度，请刷新页面后重试。');
+  });
+
+  it('keeps a successful replacement as the write baseline when verification load fails', async () => {
+    let loads = 0;
+    const saved: LearnerState[] = [];
+    const replacement = { ...createDefaultState(), currentWeek: 6, notes: { imported: 'keep me' } };
+    const repository: ProgressRepository = {
+      load: async () => { loads += 1; if (loads === 1) return createDefaultState(); throw new Error('verification unavailable'); },
+      replace: async () => undefined,
+      save: async (next) => { saved.push(clone(next)); },
+      snapshot: async () => createDefaultState(),
+    };
+    const { progress } = await renderProgress(repository);
+    await act(async () => { await progress().replaceState(replacement); });
+    expect(progress().state).toMatchObject(replacement);
+    expect(progress().error).toBe('学习进度已保存，但暂时无法重新读取验证，请刷新页面后确认。');
+    await act(async () => { await progress().saveNote('after', 'still queued'); await progress().setCurrentWeek(7); });
+    expect(saved.at(-1)).toMatchObject({ currentWeek: 7, notes: { imported: 'keep me', after: 'still queued' } });
+    expect(progress().error).toBeUndefined();
+  });
+
+  it('queues invalid week feedback behind earlier writes and clears it after a later success', async () => {
+    const saving = deferred<void>();
+    const repository: ProgressRepository = { load: async () => createDefaultState(), save: async () => saving.promise, snapshot: async () => createDefaultState(), replace: async () => undefined };
+    const { progress } = await renderProgress(repository);
+    const first = progress().saveNote('w04', 'GPIO');
+    const invalid = progress().setCurrentWeek(25);
+    expect(progress().error).toBeUndefined();
+    await act(async () => { saving.resolve(); await Promise.all([first, invalid]); });
+    expect(progress().error).toBe('周编号必须在 1 到 24 之间。');
+    await act(async () => { await progress().recordEvidence(evidence); });
+    expect(progress().error).toBeUndefined();
+  });
+
+  it('rejects repository identity changes without using the new repository', async () => {
+    const first = createMemoryRepository();
+    const second = createMemoryRepository();
+    const secondLoad = vi.spyOn(second, 'load');
+    let current: ProgressContextValue | undefined;
+    const view = render(<ProgressProvider repository={first}><Probe onChange={(value) => { current = value; }} /></ProgressProvider>);
+    await waitFor(() => expect(current?.loading).toBe(false));
+    expect(() => view.rerender(<ProgressProvider repository={second}><Probe onChange={(value) => { current = value; }} /></ProgressProvider>)).toThrow('ProgressProvider 的 repository 在挂载后不能更换。');
+    expect(secondLoad).not.toHaveBeenCalled();
+    expect(second.saved).toHaveLength(0);
+  });
+
+  it('loads only once under StrictMode', async () => {
+    const repository = createMemoryRepository();
+    const load = vi.spyOn(repository, 'load');
+    render(<StrictMode><ProgressProvider repository={repository}><Probe onChange={() => undefined} /></ProgressProvider></StrictMode>);
+    await waitFor(() => expect(load).toHaveBeenCalledTimes(1));
   });
 });
