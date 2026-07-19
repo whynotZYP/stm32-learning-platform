@@ -10,7 +10,7 @@ static PacketParser parser;
 static PacketFrame received_frame;
 static PacketParserResult last_result;
 static uint8_t rx_byte;
-static uint32_t rearm_failure_count;
+static volatile uint32_t rearm_failure_count;
 
 static void rearm_receive(void)
 {

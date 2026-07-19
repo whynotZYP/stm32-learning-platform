@@ -6,6 +6,31 @@ on:
   pull_request:
 
 jobs:
+  phase-4-host-c:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            host_cc: gcc
+          - os: windows-latest
+            host_cc: clang
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install native LLVM on Windows
+        if: runner.os == 'Windows'
+        run: choco install llvm --yes --no-progress
+      - name: Run phase 4 host-C behavior and mutation tests
+        env:
+          HOST_CC: ${{ matrix.host_cc }}
+        run: npx vitest run --config web/vitest.config.ts scripts/firmware-host/phase-04-host.test.ts
+
   web-and-content:
     runs-on: ubuntu-latest
     steps:

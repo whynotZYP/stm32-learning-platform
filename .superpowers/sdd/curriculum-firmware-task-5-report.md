@@ -51,6 +51,14 @@
 - 主机测试优先使用 `HOST_CC`，否则查找 `clang`、`gcc`、`cc`；本机验证通过未跟踪的 TinyCC 执行，CI/Linux 可使用标准 clang/gcc/cc。
 - 生产代码审查发现并修复了 USART 重启接收失败不可观察的问题；最终风险主要是尚未进行实机电气与时序验证。
 
+## 独立复核后的修正
+
+- Windows 不再回退到只能生成 ARM 目标的 `starm-clang`；候选编译器必须先编译并实际运行一个本机探针，显式无效的 `HOST_CC` 会直接失败，禁止静默跳过主机测试。
+- CI 增加 Ubuntu/GCC 与 Windows/Clang 两条 Phase 4 host-C 门禁。
+- W14/W15 的中断共享重挂接失败计数改为 `volatile`。
+- W15 队列用例现在链接 W15 自己的 `usart_rx.c` 生产对象。
+- 修正后 focused 26/26、全量 28 个文件 271 项测试通过；四个工程再次 fresh 构建成功。
+
 ## Commit
 
 `feat: teach DMA USART packets and I2C basics`

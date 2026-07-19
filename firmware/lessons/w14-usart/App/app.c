@@ -7,7 +7,7 @@ enum { USART_TX_TIMEOUT_MS = 20U };
 
 static UsartRxState rx_state;
 static uint8_t rx_byte;
-static uint32_t rearm_failure_count;
+static volatile uint32_t rearm_failure_count;
 
 static void rearm_receive(void)
 {

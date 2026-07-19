@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
@@ -6,15 +6,14 @@ import { spawnSync } from 'node:child_process';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const ROOT = process.cwd();
-const TOOLCHAIN_BIN = 'F:/stm/STM32CubeCLT_1.22.0/st-arm-clang/bin';
-const ST_CLANG = join(TOOLCHAIN_BIN, 'starm-clang.exe');
-const ST_LINK = join(TOOLCHAIN_BIN, 'lld-link.exe');
+type ProductionName = 'dma' | 'w14Usart' | 'w15Usart' | 'parser' | 'mpu';
 const SOURCES = [
-  'firmware/lessons/w13-adc-dma/App/dma_snapshot.c',
-  'firmware/lessons/w14-usart/App/usart_rx.c',
-  'firmware/lessons/w15-usart-packets/App/packet_parser.c',
-  'firmware/lessons/w16-i2c-mpu6050-id/App/mpu6050_id.c',
-];
+  { name: 'dma', source: 'firmware/lessons/w13-adc-dma/App/dma_snapshot.c' },
+  { name: 'w14Usart', source: 'firmware/lessons/w14-usart/App/usart_rx.c' },
+  { name: 'w15Usart', source: 'firmware/lessons/w15-usart-packets/App/usart_rx.c' },
+  { name: 'parser', source: 'firmware/lessons/w15-usart-packets/App/packet_parser.c' },
+  { name: 'mpu', source: 'firmware/lessons/w16-i2c-mpu6050-id/App/mpu6050_id.c' },
+] as const satisfies ReadonlyArray<{ name: ProductionName; source: string }>;
 const CASES = [
   [1, 'publishes one complete DMA frame'],
   [2, 'keeps a DMA snapshot stable while the source buffer changes'],
@@ -35,43 +34,55 @@ const CASES = [
 ] as const;
 
 let buildDir = '';
-const productionObjects: string[] = [];
-let compiler = '';
-let linker = '';
-let stFallback = false;
+const productionObjects = {} as Record<ProductionName, string>;
 
 function run(command: string, args: string[]) {
   const result = spawnSync(command, args, { cwd: ROOT, encoding: 'utf8' });
   if (result.status !== 0) throw new Error(`${basename(command)} failed (${result.status})\n${result.stdout}\n${result.stderr}`);
 }
 
-function resolves(command: string) {
-  const longVersion = spawnSync(command, ['--version'], { encoding: 'utf8' });
-  if (longVersion.status === 0) return true;
-  return spawnSync(command, ['-v'], { encoding: 'utf8' }).status === 0;
+function compilesAndRunsNative(command: string) {
+  const probeDir = mkdtempSync(join(tmpdir(), 'stm32-phase04-cc-probe-'));
+  const source = join(probeDir, 'probe.c');
+  const executable = join(probeDir, process.platform === 'win32' ? 'probe.exe' : 'probe');
+  try {
+    writeFileSync(source, 'int main(void) { return 0; }\n', 'utf8');
+    const compile = spawnSync(command, ['-std=c11', source, '-o', executable], { encoding: 'utf8' });
+    if (compile.status !== 0) return false;
+    return spawnSync(executable, [], { encoding: 'utf8' }).status === 0;
+  } finally {
+    rmSync(probeDir, { recursive: true, force: true });
+  }
 }
 
 function resolveCompiler() {
-  const candidates = [process.env.HOST_CC, 'clang', 'gcc', 'cc'].filter((value): value is string => Boolean(value));
-  const portable = candidates.find(resolves);
-  if (portable) return portable;
-  if (process.platform === 'win32' && existsSync(ST_CLANG) && existsSync(ST_LINK)) {
-    stFallback = true;
-    linker = ST_LINK;
-    return ST_CLANG;
+  if (process.env.HOST_CC) {
+    if (compilesAndRunsNative(process.env.HOST_CC)) return process.env.HOST_CC;
+    throw new Error(`HOST_CC '${process.env.HOST_CC}' is not a usable native host C compiler.`);
   }
-  throw new Error('No host C compiler found. Set HOST_CC to clang, gcc or cc.');
+  const compiler = ['clang', 'gcc', 'cc'].find(compilesAndRunsNative);
+  if (compiler) return compiler;
+  throw new Error('No usable native host C compiler found. Set HOST_CC to clang, gcc or cc.');
+}
+
+const compiler = resolveCompiler();
+
+function objectsForCase(testCase: number) {
+  return [
+    productionObjects.dma,
+    testCase === 15 ? productionObjects.w15Usart : productionObjects.w14Usart,
+    productionObjects.parser,
+    productionObjects.mpu,
+  ];
 }
 
 beforeAll(async () => {
-  compiler = resolveCompiler();
-  for (const source of SOURCES) expect(existsSync(join(ROOT, source)), `missing production source ${source}`).toBe(true);
+  for (const { source } of SOURCES) expect(existsSync(join(ROOT, source)), `missing production source ${source}`).toBe(true);
   buildDir = await mkdtemp(join(tmpdir(), 'stm32-phase04-host-'));
-  for (const [index, source] of SOURCES.entries()) {
-    const object = join(buildDir, `production-${index}.obj`);
-    const target = stFallback ? ['--target=x86_64-pc-windows-msvc', '-ffreestanding', '-fno-builtin'] : [];
-    run(compiler, [...target, '-std=c11', '-Wall', '-Wextra', '-Werror', '-c', join(ROOT, source), '-o', object]);
-    productionObjects.push(object);
+  for (const { name, source } of SOURCES) {
+    const object = join(buildDir, `${name}.obj`);
+    run(compiler, ['-std=c11', '-Wall', '-Wextra', '-Werror', '-c', join(ROOT, source), '-o', object]);
+    productionObjects[name] = object;
   }
 });
 
@@ -82,15 +93,13 @@ describe('phase 4 production C behavior on the host', () => {
     it(name, () => {
       const harnessObject = join(buildDir, `harness-${testCase}.obj`);
       const executable = join(buildDir, `case-${testCase}.exe`);
-      const target = stFallback ? ['--target=x86_64-pc-windows-msvc', '-ffreestanding', '-fno-builtin', '-DHOST_ST_FREESTANDING=1'] : [];
       run(compiler, [
-        ...target, '-std=c11', '-Wall', '-Wextra', '-Werror',
+        '-std=c11', '-Wall', '-Wextra', '-Werror',
         `-DTEST_CASE=${testCase}`, '-I', join(ROOT, 'firmware/lessons/w13-adc-dma/App'), '-I', join(ROOT, 'firmware/lessons/w14-usart/App'),
         '-I', join(ROOT, 'firmware/lessons/w15-usart-packets/App'), '-I', join(ROOT, 'firmware/lessons/w16-i2c-mpu6050-id/App'),
         '-c', join(ROOT, 'scripts/firmware-host/phase-04-host-harness.c'), '-o', harnessObject,
       ]);
-      if (stFallback) run(linker, [harnessObject, ...productionObjects, '/entry:mainCRTStartup', '/subsystem:console', '/nodefaultlib', `/out:${executable}`]);
-      else run(compiler, [harnessObject, ...productionObjects, '-o', executable]);
+      run(compiler, [harnessObject, ...objectsForCase(testCase), '-o', executable]);
       const result = spawnSync(executable, [], { encoding: 'utf8' });
       expect(result.status, `case ${testCase} failed: ${result.stderr}`).toBe(0);
     });
@@ -102,8 +111,6 @@ describe('phase 4 production C behavior on the host', () => {
     const mutantObject = join(buildDir, 'packet-parser-mutant.obj');
     const harnessObject = join(buildDir, 'harness-mutant.obj');
     const executable = join(buildDir, 'case-mutant.exe');
-    const target = stFallback ? ['--target=x86_64-pc-windows-msvc', '-ffreestanding', '-fno-builtin'] : [];
-    const harnessTarget = stFallback ? [...target, '-DHOST_ST_FREESTANDING=1'] : target;
 
     const productionCode = await readFile(productionParser, 'utf8');
     const mutantCode = productionCode.replace(
@@ -112,16 +119,15 @@ describe('phase 4 production C behavior on the host', () => {
     );
     if (mutantCode === productionCode) throw new Error('checksum mutation target was not found');
     await writeFile(mutantSource, mutantCode, 'utf8');
-    run(compiler, [...target, '-std=c11', '-Wall', '-Wextra', '-Werror', '-I', join(ROOT, 'firmware/lessons/w15-usart-packets/App'), '-c', mutantSource, '-o', mutantObject]);
+    run(compiler, ['-std=c11', '-Wall', '-Wextra', '-Werror', '-I', join(ROOT, 'firmware/lessons/w15-usart-packets/App'), '-c', mutantSource, '-o', mutantObject]);
     run(compiler, [
-      ...harnessTarget, '-std=c11', '-Wall', '-Wextra', '-Werror', '-DTEST_CASE=7',
+      '-std=c11', '-Wall', '-Wextra', '-Werror', '-DTEST_CASE=7',
       '-I', join(ROOT, 'firmware/lessons/w13-adc-dma/App'), '-I', join(ROOT, 'firmware/lessons/w14-usart/App'),
       '-I', join(ROOT, 'firmware/lessons/w15-usart-packets/App'), '-I', join(ROOT, 'firmware/lessons/w16-i2c-mpu6050-id/App'),
       '-c', join(ROOT, 'scripts/firmware-host/phase-04-host-harness.c'), '-o', harnessObject,
     ]);
-    const unmutatedObjects = productionObjects.filter((_, index) => index !== 2);
-    if (stFallback) run(linker, [harnessObject, ...unmutatedObjects, mutantObject, '/entry:mainCRTStartup', '/subsystem:console', '/nodefaultlib', `/out:${executable}`]);
-    else run(compiler, [harnessObject, ...unmutatedObjects, mutantObject, '-o', executable]);
+    const unmutatedObjects = [productionObjects.dma, productionObjects.w14Usart, productionObjects.mpu];
+    run(compiler, [harnessObject, ...unmutatedObjects, mutantObject, '-o', executable]);
 
     const result = spawnSync(executable, [], { encoding: 'utf8' });
     expect(result.status, 'the checksum mutant survived case 7').not.toBe(0);

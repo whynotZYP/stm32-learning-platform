@@ -83,7 +83,7 @@ describe('phase 4 generated firmware contracts', () => {
       const uart = await text(`firmware/lessons/${project}/Core/Src/usart.c`);
       const irq = await text(`firmware/lessons/${project}/Core/Src/stm32f1xx_it.c`);
       const app = await text(`firmware/lessons/${project}/App/app.c`);
-      expect(ioc).toMatch(/PA9\.Signal=USART1_TX/); expect(ioc).toMatch(/PA10\.Signal=USART1_RX/); expect(uart).toMatch(/BaudRate\s*=\s*115200/); expect(uart).toMatch(/UART_WORDLENGTH_8B/); expect(uart).toMatch(/UART_STOPBITS_1/); expect(uart).toMatch(/UART_PARITY_NONE/); expect(app).toMatch(/HAL_UART_Receive_IT/); expect(app).toMatch(/HAL_UART_Receive_IT[\s\S]*!=\s*HAL_OK[\s\S]*rearm_failure_count\s*=\s*rearm_failure_count\s*\+\s*1U/); expect(app).toMatch(/App_GetRxRearmFailureCount/); expect(app).toMatch(/HAL_UART_ErrorCallback/); expect(app).toMatch(/HAL_UART_ERROR_ORE/); expect(app).toMatch(/__HAL_UART_CLEAR_OREFLAG/); expect(irq).not.toMatch(/printf|HAL_UART_Transmit/);
+      expect(ioc).toMatch(/PA9\.Signal=USART1_TX/); expect(ioc).toMatch(/PA10\.Signal=USART1_RX/); expect(uart).toMatch(/BaudRate\s*=\s*115200/); expect(uart).toMatch(/UART_WORDLENGTH_8B/); expect(uart).toMatch(/UART_STOPBITS_1/); expect(uart).toMatch(/UART_PARITY_NONE/); expect(app).toMatch(/static\s+volatile\s+uint32_t\s+rearm_failure_count/); expect(app).toMatch(/HAL_UART_Receive_IT/); expect(app).toMatch(/HAL_UART_Receive_IT[\s\S]*!=\s*HAL_OK[\s\S]*rearm_failure_count\s*=\s*rearm_failure_count\s*\+\s*1U/); expect(app).toMatch(/App_GetRxRearmFailureCount/); expect(app).toMatch(/HAL_UART_ErrorCallback/); expect(app).toMatch(/HAL_UART_ERROR_ORE/); expect(app).toMatch(/__HAL_UART_CLEAR_OREFLAG/); expect(irq).not.toMatch(/printf|HAL_UART_Transmit/);
     }
     expect(await text('firmware/lessons/w14-usart/App/app.c')).toMatch(/HAL_UART_Transmit\s*\([^,]+,[^,]+,[^,]+,\s*20U\s*\)/s);
   });
@@ -100,5 +100,28 @@ describe('phase 4 generated firmware contracts', () => {
     const i2c = await text('firmware/lessons/w16-i2c-mpu6050-id/Core/Src/i2c.c');
     const app = await text('firmware/lessons/w16-i2c-mpu6050-id/App/app.c');
     expect(ioc).toMatch(/PB6\.Signal=I2C1_SCL/); expect(ioc).toMatch(/PB7\.Signal=I2C1_SDA/); expect(i2c).toMatch(/ClockSpeed\s*=\s*100000/); expect(i2c).toMatch(/GPIO_MODE_AF_OD/); expect(app).toMatch(/HAL_I2C_Mem_Read\s*\([^,]+,\s*MPU6050_HAL_ADDRESS,\s*MPU6050_WHO_AM_I_REGISTER,\s*I2C_MEMADD_SIZE_8BIT,[\s\S]*?20U\s*\)/); expect(app).not.toMatch(/ACCEL|GYRO|PWR_MGMT/);
+  });
+
+  it('rejects ARM-only fallbacks when resolving the native host compiler', async () => {
+    const hostTest = await text('scripts/firmware-host/phase-04-host.test.ts');
+    expect(hostTest).toMatch(/native host C compiler/i);
+    expect(hostTest).not.toMatch(/starm-clang|stFallback/i);
+  });
+
+  it('links the week 15 queue case against the week 15 USART production module', async () => {
+    const hostTest = await text('scripts/firmware-host/phase-04-host.test.ts');
+    expect(hostTest).toMatch(/w15-usart-packets\/App\/usart_rx\.c/);
+    expect(hostTest).toMatch(/testCase\s*===\s*15[\s\S]*w15/i);
+  });
+
+  it('runs the phase 4 host-C suite with selected native compilers on Linux and Windows CI', async () => {
+    const workflow = await text('.github/workflows/ci.yml');
+    expect(workflow).toMatch(/phase-4-host-c/);
+    expect(workflow).toMatch(/ubuntu-latest/);
+    expect(workflow).toMatch(/windows-latest/);
+    expect(workflow).toMatch(/HOST_CC/);
+    expect(workflow).toMatch(/matrix\.host_cc/);
+    expect(workflow).toMatch(/choco\s+install\s+llvm/i);
+    expect(workflow).toMatch(/phase-04-host\.test\.ts/);
   });
 });
