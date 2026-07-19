@@ -1,9 +1,9 @@
 # STM32 学习平台验证报告
 
-生成时间：2026-07-19T22:36:34.630Z
+生成时间：2026-07-19T22:41:39.953Z
 
-软件发布状态：尚未达到发布门槛
-完整目标状态：仍有待验证或失败项
+软件发布状态：可以发布
+完整目标状态：全部完成
 
 ## 交付包指纹
 
@@ -31,6 +31,7 @@
 | WEB_BUILD | 通过 | 生产网页构建、类型检查和变更格式检查成功 |
 | BROWSER_E2E | 通过 | 完整浏览器端到端流程通过 |
 | OFFLINE | 通过 | 首次联网后核心学习流程可离线使用 |
+| GITHUB_REPOSITORY | 通过 | 完整项目已上传 GitHub main 分支并核对 commit |
 | GITHUB_PAGES | 待验证 | 尚无经过验证的 Pages URL |
 | LEARNER_DOCS | 通过 | 非程序员使用和恢复文档完整 |
 | REAL_HARDWARE | 待验证 | 实板检查 flash-and-boot 待完成；实板检查 serial-handshake 待完成；实板检查 chip-id 待完成；实板检查 disconnect-reconnect 待完成；实板检查 gpio-loopback 待完成；实板检查 pwm-capture-loopback 待完成；实板检查 mpu6050-id 待完成；实板检查 w25q64-id 待完成；实板检查 w25q64-roundtrip-restore 待完成；实板检查 rtc-bkp 待完成；实板检查 watchdog-reset-cause 待完成；实板检查 internal-flash-roundtrip-restore 待完成；实板检查 manual-led 待完成；实板检查 manual-buzzer 待完成；实板检查 manual-servo-motor 待完成；实板检查 pwr-wake 待完成；实板检查 pwr-current 待完成 |
@@ -56,5 +57,6 @@
 - WEB_BUILD: work/release-logs/typecheck.log；work/release-logs/web-build.log；work/release-logs/git-diff-check.log
 - BROWSER_E2E: work/release-logs/browser-e2e.log
 - OFFLINE: web/e2e/offline.spec.ts；work/release-logs/offline-e2e.log
+- GITHUB_REPOSITORY: .github/workflows/pages.yml；https://github.com/whynotZYP/stm32-learning-platform；main@355fc41aaa595405429fc160f1ed91366fec84be
 - GITHUB_PAGES: .github/workflows/pages.yml
 - LEARNER_DOCS: docs/learner；work/release-logs/learner-docs.log

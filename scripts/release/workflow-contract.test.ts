@@ -41,4 +41,10 @@ describe('release workflow contracts', () => {
     expect(build.find((step) => step.uses?.startsWith('actions/upload-pages-artifact'))?.with?.path).toBe('dist');
     expect(pages.jobs.deploy.steps.some((step) => step.uses?.startsWith('actions/deploy-pages'))).toBe(true);
   });
+
+  it('allows the cold phase-5 host-C compilation to finish in CI', () => {
+    const phaseFive = commands(workflow('ci.yml'))
+      .find((command) => command.includes('phase-05-content.test.ts'));
+    expect(phaseFive).toContain('--testTimeout=15000');
+  });
 });

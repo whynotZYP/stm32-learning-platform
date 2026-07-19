@@ -66,4 +66,14 @@ describe('release auditor truthfulness', () => {
     expect(report).toContain('abc1234');
     expect(report).toContain('0123456789abcdef');
   });
+
+  it('accepts a directly verified GitHub repository upload on main', async () => {
+    const { root, evidencePath } = fixture(
+      { id: 'GITHUB_REPOSITORY', requirement: 'uploaded', evidenceKind: 'repository', evidenceKeys: ['repository:github'], requiredForSoftwareRelease: true, requiredForGoalCompletion: true },
+      { repository: { github: { url: 'https://github.com/example/project', defaultBranch: 'main', commitSha: 'abc1234', verifiedAt: '2026-07-20T00:00:00Z' } } },
+    );
+    const audit = await auditRelease(root, evidencePath);
+    expect(audit.results[0]).toMatchObject({ status: 'passed' });
+    expect(audit.results[0].evidence).toContain('https://github.com/example/project');
+  });
 });

@@ -15,7 +15,7 @@ export interface ReleaseAudit {
 interface Requirement {
   id: string;
   requirement: string;
-  evidenceKind: 'file' | 'command' | 'deployment' | 'hardware';
+  evidenceKind: 'file' | 'command' | 'repository' | 'deployment' | 'hardware';
   evidenceKeys: string[];
   requiredForSoftwareRelease: boolean;
   requiredForGoalCompletion: boolean;
@@ -33,6 +33,12 @@ interface HardwareCheck {
 }
 interface EvidenceDocument {
   commands?: Record<string, CommandEvidence>;
+  repository?: Record<string, {
+    url?: string;
+    defaultBranch?: string;
+    commitSha?: string;
+    verifiedAt?: string;
+  }>;
   deployment?: Record<string, {
     url?: string;
     verifiedAt?: string;
@@ -78,6 +84,8 @@ export async function auditRelease(
     .filter((key) => key.startsWith('command:')).map((key) => key.slice(8)));
   const knownDeployments = new Set(matrix.requirements.flatMap((item) => item.evidenceKeys)
     .filter((key) => key.startsWith('deployment:')).map((key) => key.slice(11)));
+  const knownRepositories = new Set(matrix.requirements.flatMap((item) => item.evidenceKeys)
+    .filter((key) => key.startsWith('repository:')).map((key) => key.slice(11)));
   const knownHardware = new Set(matrix.requirements.flatMap((item) => item.evidenceKeys)
     .filter((key) => key.startsWith('hardware:')).map((key) => key.slice(9)));
   for (const key of Object.keys(evidence.commands ?? {})) {
@@ -85,6 +93,9 @@ export async function auditRelease(
   }
   for (const key of Object.keys(evidence.deployment ?? {})) {
     if (!knownDeployments.has(key)) throw new Error(`Unknown deployment evidence key: ${key}`);
+  }
+  for (const key of Object.keys(evidence.repository ?? {})) {
+    if (!knownRepositories.has(key)) throw new Error(`Unknown repository evidence key: ${key}`);
   }
   for (const check of evidence.hardware?.checks ?? []) {
     if (!knownHardware.has(check.id)) throw new Error(`Unknown hardware evidence key: ${check.id}`);
@@ -116,6 +127,19 @@ export async function auditRelease(
         } else {
           statuses.push('passed');
           direct.push(command.logPath ?? command.command ?? key);
+        }
+      } else if (kind === 'repository') {
+        const repository = evidence.repository?.[key];
+        if (!repository?.url) {
+          statuses.push('pending');
+          reasons.push('尚无经过验证的 GitHub 仓库地址');
+        } else if (repository.defaultBranch !== 'main' || !repository.commitSha || !repository.verifiedAt) {
+          statuses.push('failed');
+          reasons.push('GitHub 仓库存在，但 main/commit/验证时间证据不完整');
+          direct.push(repository.url);
+        } else {
+          statuses.push('passed');
+          direct.push(repository.url, `${repository.defaultBranch}@${repository.commitSha}`);
         }
       } else if (kind === 'deployment') {
         const deployment = evidence.deployment?.[key];

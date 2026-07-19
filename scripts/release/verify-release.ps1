@@ -71,6 +71,7 @@ $previous = if (Test-Path $evidencePath) { Get-Content -Raw -Encoding UTF8 $evid
 $document = [ordered]@{
   schemaVersion = 1
   commands = $commands
+  repository = if ($previous -and $previous.repository) { $previous.repository } else { [ordered]@{} }
   deployment = if ($previous -and $previous.deployment) { $previous.deployment } else { [ordered]@{} }
 }
 if ($previous -and $previous.package) { $document.package = $previous.package }

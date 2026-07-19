@@ -43,7 +43,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx vitest run --config web/vitest.config.ts scripts/content-validation/phase-05-content.test.ts
+      - run: npx vitest run --config web/vitest.config.ts scripts/content-validation/phase-05-content.test.ts --testTimeout=15000
 
   web-and-content:
     runs-on: ubuntu-latest
