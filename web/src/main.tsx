@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 
 const root = document.getElementById('root');
-if (!root) throw new Error('椤甸潰缂哄皯 #root 鎸傝浇鑺傜偣');
+if (!root) throw new Error('页面缺少 #root 挂载节点');
 
 createRoot(root).render(
   <StrictMode>
