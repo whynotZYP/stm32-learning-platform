@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "entry-diagnostic",
+  "lessonId": "entry-diagnostic",
+  "items": [
+    {
+      "id": "electricity-led-circuit",
+      "kind": "concept",
+      "prompt": "请用自己的话说明 LED 电路里的电压、电流和电阻分别起什么作用。",
+      "tagIds": ["foundation.electricity"],
+      "maxScore": 25,
+      "rubric": ["能说明电压提供电势差。", "能说明电流需要闭合回路。", "能说明限流电阻保护 LED。", "能把三者关系说清楚。"]
+    },
+    {
+      "id": "bit-mask-read",
+      "kind": "configuration",
+      "prompt": "表达式 GPIOA->ODR |= (1 << 3) 会把 GPIOA 的哪一位设为 1？",
+      "tagIds": ["foundation.binary", "gpio.output-mode"],
+      "maxScore": 25,
+      "answer": "第3位",
+      "rubric": ["能读出左移位数。", "能识别按位或操作。", "能说明目标位被置一。", "能避免把位编号误认为十进制值。"]
+    },
+    {
+      "id": "safe-gpio-led-wiring",
+      "kind": "practical",
+      "prompt": "为 3.3 V GPIO 和 LED 选择安全接线：A. GPIO-限流电阻-LED-GND；B. GPIO-LED-GND（无电阻）；C. GPIO 直接接 GND。请填写选项字母。",
+      "tagIds": ["foundation.electricity", "gpio.output-mode"],
+      "maxScore": 35,
+      "answer": "A",
+      "rubric": ["接线前确认已断电。", "GPIO 不直接短接到 GND。", "LED 串联限流电阻。", "上电前复核极性和公共地。"]
+    },
+    {
+      "id": "program-evidence",
+      "kind": "reflection",
+      "prompt": "你会记录什么现象或数据，来证明一个 STM32 程序确实按预期运行？",
+      "tagIds": ["c.control-flow", "c.memory"],
+      "maxScore": 15,
+      "rubric": ["给出可观察的现象或串口数据。", "说明现象与预期如何对应。", "包含可复现的操作条件。", "能区分猜测和实际证据。"]
+    }
+  ]
+}
