@@ -8,7 +8,7 @@ import { deviceResultToEvidence } from '../device/evidence/deviceResultToEvidenc
 import { DeviceRunError, runDeviceTest } from '../device/runner/runDeviceTest';
 import { BrowserSerialTransport, SerialConnectionError } from '../device/transport/BrowserSerialTransport';
 import type { DeviceTransport } from '../device/transport/DeviceTransport';
-import { SimulatorTransport } from '../device/transport/SimulatorTransport';
+import { SimulatorTransport, type SimulatorScenario } from '../device/transport/SimulatorTransport';
 import type { EvidenceRecord, EvidenceStatus } from '../domain/progress/types';
 
 type ConsoleState = 'idle' | 'connecting' | 'connected' | 'running' | 'disconnected' | 'error';
@@ -22,7 +22,7 @@ interface ConfirmationState {
 
 export interface DeviceConsolePageProps {
   createSerialTransport?: () => DeviceTransport;
-  createSimulatorTransport?: () => DeviceTransport;
+  createSimulatorTransport?: (scenario: SimulatorScenario) => DeviceTransport;
   simulatorEnabled?: boolean;
 }
 
@@ -43,8 +43,8 @@ function evidenceLabel(status: EvidenceStatus): string {
 
 export function DeviceConsolePage({
   createSerialTransport = () => new BrowserSerialTransport(navigator.serial),
-  createSimulatorTransport = () => new SimulatorTransport('pass'),
-  simulatorEnabled = import.meta.env.DEV || import.meta.env.MODE === 'test',
+  createSimulatorTransport = (scenario) => new SimulatorTransport(scenario),
+  simulatorEnabled = true,
 }: DeviceConsolePageProps) {
   const { recordEvidenceBatch } = useProgress();
   const [safety, setSafety] = useState(initialSafety);
@@ -60,6 +60,7 @@ export function DeviceConsolePage({
   const [showRetry, setShowRetry] = useState(false);
   const [manualObserved, setManualObserved] = useState<Record<string, boolean>>({});
   const [manualSaved, setManualSaved] = useState<Record<string, boolean>>({});
+  const [simulatorScenario, setSimulatorScenario] = useState<SimulatorScenario>('pass');
   const requestSequence = useRef(0);
   const abortRef = useRef<AbortController | undefined>(undefined);
   const safeToConnect = Object.values(safety).every(Boolean);
@@ -205,7 +206,19 @@ export function DeviceConsolePage({
     <DeviceSafetyChecklist value={safety} onChange={setSafety} />
     <div className="device-actions">
       <button type="button" disabled={!safeToConnect || consoleState === 'connecting' || Boolean(transport)} onClick={() => { void connect(createSerialTransport(), '开发板'); }}>连接开发板</button>
-      {simulatorEnabled && <button type="button" disabled={!safeToConnect || consoleState === 'connecting' || Boolean(transport)} onClick={() => { void connect(createSimulatorTransport(), '模拟器'); }}>使用模拟器</button>}
+      {simulatorEnabled && <>
+        <label>模拟场景
+          <select value={simulatorScenario} disabled={Boolean(transport)} onChange={(event) => setSimulatorScenario(event.target.value as SimulatorScenario)}>
+            <option value="pass">通过</option>
+            <option value="fail">检测失败</option>
+            <option value="timeout">超时</option>
+            <option value="disconnect">连接断开</option>
+            <option value="malformed">坏数据</option>
+            <option value="wrong-version">协议版本错误</option>
+          </select>
+        </label>
+        <button type="button" disabled={!safeToConnect || consoleState === 'connecting' || Boolean(transport)} onClick={() => { void connect(createSimulatorTransport(simulatorScenario), '模拟器'); }}>使用模拟器</button>
+      </>}
       {transport && <button type="button" onClick={() => { void disconnect(); }}>断开连接</button>}
     </div>
     <p role="status" aria-live="polite" className="status">{notice ?? (consoleState === 'idle' ? '尚未连接' : '')}</p>

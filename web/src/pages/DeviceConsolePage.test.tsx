@@ -127,6 +127,19 @@ describe('DeviceConsolePage', () => {
     }));
   });
 
+  it('lets the development simulator reproduce a failed device result', async () => {
+    const store = renderPage({ simulatorEnabled: true });
+    completeSafety();
+    fireEvent.change(screen.getByLabelText('模拟场景'), { target: { value: 'fail' } });
+    fireEvent.click(screen.getByRole('button', { name: '使用模拟器' }));
+    await screen.findByText('模拟器已连接');
+    const card = screen.getByRole('article', { name: '检测固件握手' });
+    fireEvent.click(within(card).getByRole('button', { name: '开始检测' }));
+
+    await waitFor(() => expect(screen.getByRole('log')).toHaveTextContent('system.hello: fail'));
+    expect(store.saved.at(-1)?.evidence.at(-1)?.status).toBe('pending');
+  });
+
   it('requires a separate named observation before confirming semi-automatic evidence', async () => {
     const store = renderPage({ createSerialTransport: () => new RespondingTransport({ eventCount: 3 }) });
     completeSafety();

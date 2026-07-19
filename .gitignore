@@ -3,6 +3,7 @@
 /dist/
 /firmware/lessons/*/build/
 /firmware/lessons/*/build-fresh/
+/firmware/device-test-v1/build/
 work/
 playwright-report/
 test-results/
