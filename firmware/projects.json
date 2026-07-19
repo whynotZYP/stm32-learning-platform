@@ -1,0 +1,25 @@
+{
+  "projects": [
+    { "id": "w03-first-project", "path": "firmware/lessons/w03-first-project" },
+    { "id": "w04-gpio-output", "path": "firmware/lessons/w04-gpio-output" },
+    { "id": "w05-gpio-input", "path": "firmware/lessons/w05-gpio-input" },
+    { "id": "w06-oled-debug", "path": "firmware/lessons/w06-oled-debug" },
+    { "id": "w07-exti-events", "path": "firmware/lessons/w07-exti-events" },
+    { "id": "w08-tim-timebase", "path": "firmware/lessons/w08-tim-timebase" },
+    { "id": "w09-pwm", "path": "firmware/lessons/w09-pwm" },
+    { "id": "w10-actuators", "path": "firmware/lessons/w10-actuators" },
+    { "id": "w11-tim-measurement", "path": "firmware/lessons/w11-tim-measurement" },
+    { "id": "w12-adc", "path": "firmware/lessons/w12-adc" },
+    { "id": "w13-adc-dma", "path": "firmware/lessons/w13-adc-dma" },
+    { "id": "w14-usart", "path": "firmware/lessons/w14-usart" },
+    { "id": "w15-usart-packets", "path": "firmware/lessons/w15-usart-packets" },
+    { "id": "w16-i2c-mpu6050-id", "path": "firmware/lessons/w16-i2c-mpu6050-id" },
+    { "id": "w17-i2c-compare", "path": "firmware/lessons/w17-i2c-compare" },
+    { "id": "w18-mpu6050", "path": "firmware/lessons/w18-mpu6050" },
+    { "id": "w19-software-spi-w25q64", "path": "firmware/lessons/w19-software-spi-w25q64" },
+    { "id": "w20-hardware-spi-w25q64", "path": "firmware/lessons/w20-hardware-spi-w25q64" },
+    { "id": "w21-rtc-bkp", "path": "firmware/lessons/w21-rtc-bkp" },
+    { "id": "w22-pwr-wdg-flash", "path": "firmware/lessons/w22-pwr-wdg-flash" },
+    { "id": "w23-capstone", "path": "firmware/lessons/w23-capstone" }
+  ]
+}

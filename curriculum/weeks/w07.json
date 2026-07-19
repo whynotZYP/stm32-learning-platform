@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1, "id": "w07-exti-events", "week": 7, "title": "EXTI：把边沿变成短小可验证的事件", "estimatedMinutes": 450,
-  "sourceCourseIds": ["11", "12"], "prerequisiteTagIds": ["gpio.input-bias", "nvic.priority"], "targetTagIds": ["exti.event-flow"],
+  "sourceCourseIds": ["11", "12"], "prerequisiteTagIds": ["gpio.input-bias"], "targetTagIds": ["exti.event-flow", "nvic.priority"],
   "objectives": ["解释 EXTI 映射、挂起位和中断生命周期", "用短 ISR 计数红外脉冲与编码器步进", "说明优先级组和 NVIC 优先级对响应顺序的影响"],
   "conceptPath": "curriculum/weeks/w07.md", "labIds": ["lab-w07-exti-events"], "assessmentId": "assessment-w07",
   "safety": ["改按键、红外或编码器接线前必须断电，所有信号均为 3.3 V 逻辑。", "开发板、红外模块和编码器必须共地；不确定模块输出电平时不能直接连接。", "本课不接电机等大负载；若后续接入必须独立供电并共地。"],

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --config web/vite.config.ts",
     "build": "npm run validate:content && npm run typecheck && vite build --config web/vite.config.ts",
+    "build:firmware": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/firmware/build-all.ps1",
     "typecheck": "tsc -p web/tsconfig.json --noEmit && tsc -p tsconfig.scripts.json --noEmit",
     "test": "vitest run --config web/vitest.config.ts",
     "test:watch": "vitest --config web/vitest.config.ts",
