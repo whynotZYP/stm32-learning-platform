@@ -2,7 +2,8 @@ import { Link, useParams } from 'react-router-dom';
 import { loadCourseMap } from '../domain/content/loadCourseMap';
 
 export function WeekPage() {
-  const weekNumber = Number(useParams().week);
+  const rawWeek = useParams().week;
+  const weekNumber = rawWeek && /^[1-9]\d*$/.test(rawWeek) ? Number(rawWeek) : Number.NaN;
   const week = loadCourseMap().weeks.find((item) => item.week === weekNumber);
   if (!week) return <section className="page"><h1>没有找到这一周</h1><Link to="/map">返回学习地图</Link></section>;
 

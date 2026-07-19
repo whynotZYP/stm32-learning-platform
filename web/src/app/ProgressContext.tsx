@@ -3,6 +3,8 @@ import { createDefaultState } from '../domain/progress/defaultState';
 import type { ProgressRepository } from '../domain/progress/repository';
 import type { EvidenceRecord, LearnerState } from '../domain/progress/types';
 
+const clone = <T,>(value: T): T => structuredClone(value);
+
 export interface ProgressActions {
   recordEvidence(record: EvidenceRecord): Promise<void>;
   saveNote(lessonId: string, markdown: string): Promise<void>;
@@ -10,69 +12,89 @@ export interface ProgressActions {
   replaceState(state: LearnerState): Promise<void>;
 }
 
-export interface ProgressContextValue extends ProgressActions {
-  state: LearnerState;
-  loading: boolean;
-  error: string | undefined;
-}
+export interface ProgressContextValue extends ProgressActions { state: LearnerState; loading: boolean; error: string | undefined; }
 
 const ProgressContext = createContext<ProgressContextValue | undefined>(undefined);
 
 export function ProgressProvider({ repository, children }: { repository: ProgressRepository; children: ReactNode }) {
-  const [state, setState] = useState<LearnerState>(() => createDefaultState());
+  const stateRef = useRef<LearnerState | null>(null);
+  if (!stateRef.current) stateRef.current = clone(createDefaultState());
+  const [state, setState] = useState<LearnerState>(() => clone(stateRef.current!));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
-  const stateRef = useRef(state);
+  const mountedRef = useRef(false);
+  const startedRef = useRef(false);
+  const queueRef = useRef<Promise<void>>(Promise.resolve());
+  const initialReadyRef = useRef<Promise<void> | null>(null);
+  const resolveInitialRef = useRef<(() => void) | null>(null);
+  if (!initialReadyRef.current) initialReadyRef.current = new Promise<void>((resolve) => { resolveInitialRef.current = resolve; });
+
+  const publish = useCallback((next: LearnerState) => {
+    stateRef.current = clone(next);
+    if (mountedRef.current) setState(clone(stateRef.current!));
+  }, []);
+  const showError = useCallback((message: string) => { if (mountedRef.current) setError(message); }, []);
+  const clearError = useCallback(() => { if (mountedRef.current) setError(undefined); }, []);
 
   useEffect(() => {
-    let active = true;
-    void repository.load()
-      .then((loaded) => {
-        if (!active) return;
-        stateRef.current = loaded;
-        setState(loaded);
-        setError(undefined);
-      })
-      .catch(() => {
-        if (active) setError('暂时无法读取本机学习进度，请刷新页面后重试。');
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => { active = false; };
-  }, [repository]);
+    mountedRef.current = true;
+    if (!startedRef.current) {
+      startedRef.current = true;
+      void (async () => {
+        try {
+          publish(clone(await repository.load()));
+          clearError();
+        } catch {
+          showError('暂时无法读取本机学习进度，请刷新页面后重试。');
+        } finally {
+          if (mountedRef.current) setLoading(false);
+          resolveInitialRef.current?.();
+        }
+      })();
+    }
+    return () => { mountedRef.current = false; };
+  }, [repository, publish, clearError, showError]);
+
+  const enqueue = useCallback((operation: () => Promise<void>) => initialReadyRef.current!.then(() => {
+    const task = queueRef.current.then(operation, operation).catch(() => showError('暂时无法保存学习进度，请稍后再试。'));
+    queueRef.current = task;
+    return task;
+  }), [showError]);
 
   const save = useCallback(async (next: LearnerState) => {
-    await repository.save(next);
-    stateRef.current = next;
-    setState(next);
-  }, [repository]);
+    const committed = clone(next);
+    try {
+      await repository.save(clone(committed));
+      publish(committed);
+      clearError();
+    } catch {
+      showError('暂时无法保存学习进度，请稍后再试。');
+    }
+  }, [repository, publish, clearError, showError]);
 
-  const recordEvidence = useCallback(async (record: EvidenceRecord) => {
-    await save({ ...stateRef.current, evidence: [...stateRef.current.evidence, record], updatedAt: new Date().toISOString() });
-  }, [save]);
+  const recordEvidence = useCallback((record: EvidenceRecord) => {
+    const incoming = clone(record);
+    return enqueue(async () => save({ ...clone(stateRef.current!), evidence: [...stateRef.current!.evidence, incoming], updatedAt: new Date().toISOString() }));
+  }, [enqueue, save]);
+  const saveNote = useCallback((lessonId: string, markdown: string) => enqueue(async () => save({ ...clone(stateRef.current!), notes: { ...stateRef.current!.notes, [lessonId]: markdown }, updatedAt: new Date().toISOString() })), [enqueue, save]);
+  const setCurrentWeek = useCallback((week: number) => {
+    if (!Number.isInteger(week) || week < 1 || week > 24) { showError('周编号必须在 1 到 24 之间。'); return Promise.resolve(); }
+    return enqueue(async () => save({ ...clone(stateRef.current!), currentWeek: week, updatedAt: new Date().toISOString() }));
+  }, [enqueue, save, showError]);
+  const replaceState = useCallback((next: LearnerState) => {
+    const incoming = clone(next);
+    return enqueue(async () => {
+      try {
+        await repository.replace(clone(incoming));
+        publish(clone(await repository.load()));
+        clearError();
+      } catch {
+        showError('暂时无法替换学习进度，请刷新页面后重试。');
+      }
+    });
+  }, [enqueue, repository, publish, clearError, showError]);
 
-  const saveNote = useCallback(async (lessonId: string, markdown: string) => {
-    await save({ ...stateRef.current, notes: { ...stateRef.current.notes, [lessonId]: markdown }, updatedAt: new Date().toISOString() });
-  }, [save]);
-
-  const setCurrentWeek = useCallback(async (week: number) => {
-    if (!Number.isInteger(week) || week < 1 || week > 24) throw new Error('周编号必须在 1 到 24 之间');
-    await save({ ...stateRef.current, currentWeek: week, updatedAt: new Date().toISOString() });
-  }, [save]);
-
-  const replaceState = useCallback(async (next: LearnerState) => {
-    await repository.replace(next);
-    const verified = await repository.load();
-    stateRef.current = verified;
-    setState(verified);
-  }, [repository]);
-
-  const value = useMemo<ProgressContextValue>(
-    () => ({ state, loading, error, recordEvidence, saveNote, setCurrentWeek, replaceState }),
-    [state, loading, error, recordEvidence, saveNote, setCurrentWeek, replaceState],
-  );
-
+  const value = useMemo<ProgressContextValue>(() => ({ state, loading, error, recordEvidence, saveNote, setCurrentWeek, replaceState }), [state, loading, error, recordEvidence, saveNote, setCurrentWeek, replaceState]);
   return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;
 }
 
