@@ -11,7 +11,7 @@ export function calculateLessonScore(scores: Partial<Record<EvidenceKind, number
   for (const kind of Object.keys(WEIGHTS) as EvidenceKind[]) {
     const score = scores[kind];
     if (score === undefined) throw new Error(`缺少评分项：${kind}`);
-    if (score < 0 || score > 100) throw new Error(`${kind} 必须在 0–100 之间`);
+    if (!Number.isFinite(score) || score < 0 || score > 100) throw new Error(`${kind} 必须在 0–100 之间`);
   }
 
   return Math.round(

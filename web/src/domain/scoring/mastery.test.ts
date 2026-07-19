@@ -22,12 +22,14 @@ const evidence = (
 
 describe('calculateTagMastery', () => {
   it('weights newest three valid scores 50/30/20', () => {
-    const result = calculateTagMastery('gpio.output-mode', [
+    const records = [
       evidence(60, '2026-01-01T00:00:00.000Z'),
       evidence(70, '2026-02-01T00:00:00.000Z'),
       evidence(80, '2026-03-01T00:00:00.000Z'),
       evidence(90, '2026-04-01T00:00:00.000Z'),
-    ]);
+    ];
+
+    const result = calculateTagMastery('gpio.output-mode', records);
 
     expect(result.score).toBe(83);
     expect(result.band).toBe('review');
@@ -35,6 +37,12 @@ describe('calculateTagMastery', () => {
       '90-2026-04-01T00:00:00.000Z',
       '80-2026-03-01T00:00:00.000Z',
       '70-2026-02-01T00:00:00.000Z',
+    ]);
+    expect(records.map((item) => item.id)).toEqual([
+      '60-2026-01-01T00:00:00.000Z',
+      '70-2026-02-01T00:00:00.000Z',
+      '80-2026-03-01T00:00:00.000Z',
+      '90-2026-04-01T00:00:00.000Z',
     ]);
   });
 
@@ -69,9 +77,16 @@ describe('calculateTagMastery', () => {
 
   it('rounds a fractional weighted score once', () => {
     expect(calculateTagMastery('gpio.output-mode', [
-      evidence(80, '2026-01-01T00:00:00.000Z'),
-      evidence(85, '2026-02-01T00:00:00.000Z'),
-      evidence(90, '2026-03-01T00:00:00.000Z'),
-    ])).toMatchObject({ score: 87, band: 'mastered' });
+      evidence(1, '2026-01-01T00:00:00.000Z'),
+      evidence(1, '2026-02-01T00:00:00.000Z'),
+      evidence(2, '2026-03-01T00:00:00.000Z'),
+    ])).toMatchObject({ score: 2, band: 'relearn' });
+  });
+
+  it('normalizes the newest two scores by their available weights', () => {
+    expect(calculateTagMastery('gpio.output-mode', [
+      evidence(40, '2026-01-01T00:00:00.000Z'),
+      evidence(80, '2026-02-01T00:00:00.000Z'),
+    ])).toMatchObject({ score: 65, band: 'remediate' });
   });
 });
