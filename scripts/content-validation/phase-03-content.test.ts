@@ -1,5 +1,8 @@
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = process.cwd();
@@ -23,6 +26,66 @@ function checks(record: any) {
     if (!item.applicable) expect(item.reason.trim()).not.toBe('');
     if (item.evidenceSource === 'simulator') expect(item.physicalHardware).toBe(false);
   }
+}
+
+function findHostCompiler(): string {
+  const candidates = [
+    process.env.HOST_CC,
+    process.platform === 'win32' ? 'C:\\Program Files\\LLVM\\bin\\clang.exe' : undefined,
+    'clang',
+    'gcc',
+    'cc',
+    'tcc',
+  ].filter((candidate): candidate is string => Boolean(candidate));
+  for (const candidate of candidates) {
+    if ((candidate.includes('\\') || candidate.includes('/')) && !existsSync(candidate)) continue;
+    const probe = spawnSync(candidate, /^tcc(?:\.exe)?$/i.test(basename(candidate)) ? ['-v'] : ['--version'], { encoding: 'utf8' });
+    if (probe.status === 0) return candidate;
+  }
+  throw new Error('No host C compiler found. Install clang/gcc or set HOST_CC to its executable path.');
+}
+
+function compileAndRunHostBehavior(mutateDutyRamp = false) {
+  const compiler = findHostCompiler();
+  const temporaryDirectory = mkdtempSync(join(tmpdir(), 'phase-03-host-'));
+  const executable = join(temporaryDirectory, process.platform === 'win32' ? 'phase-03-host.exe' : 'phase-03-host');
+  const projects = ['w09-pwm', 'w10-actuators', 'w11-tim-measurement', 'w12-adc'];
+  const sources = [
+    join(ROOT, 'scripts/content-validation/phase-03-host-behavior.c'),
+    join(ROOT, 'firmware/lessons/w09-pwm/App/pwm_logic.c'),
+    join(ROOT, 'firmware/lessons/w10-actuators/App/actuator_logic.c'),
+    join(ROOT, 'firmware/lessons/w11-tim-measurement/App/measurement_logic.c'),
+    join(ROOT, 'firmware/lessons/w12-adc/App/adc_scan_logic.c'),
+  ];
+  const includeArguments = projects.flatMap((project) => ['-I', join(ROOT, 'firmware/lessons', project, 'App')]);
+  try {
+    if (mutateDutyRamp) {
+      const mutatedSource = join(temporaryDirectory, 'pwm_logic.c');
+      const productionSource = readFileSync(sources[1], 'utf8');
+      const mutation = productionSource.replace('DUTY_STEP = 100U', 'DUTY_STEP = 200U');
+      expect(mutation).not.toBe(productionSource);
+      writeFileSync(mutatedSource, mutation, 'utf8');
+      sources[1] = mutatedSource;
+    }
+    const compilerFlags = /^tcc(?:\.exe)?$/i.test(basename(compiler)) ? [] : ['-std=c11', '-Wall', '-Wextra', '-Werror'];
+    const compile = spawnSync(compiler, [...compilerFlags, ...includeArguments, ...sources, '-o', executable], { encoding: 'utf8' });
+    expect(compile.status, `${compile.stdout}\n${compile.stderr}`).toBe(0);
+    return spawnSync(executable, [], { encoding: 'utf8' });
+  } finally {
+    rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
+}
+
+function runHostBehaviorTest() {
+  const execute = compileAndRunHostBehavior();
+  expect(execute.status, `${execute.stdout}\n${execute.stderr}`).toBe(0);
+  expect(execute.stdout).toContain('phase-03 host behavior: PASS');
+}
+
+function runHostMutationTest() {
+  const execute = compileAndRunHostBehavior(true);
+  expect(execute.status).not.toBe(0);
+  expect(execute.stderr).toContain('state.duty_counts == step * 100U');
 }
 
 describe('phase 3 curriculum contract', () => {
@@ -49,12 +112,17 @@ describe('phase 3 curriculum contract', () => {
   it('teaches PWM, actuator safety, capture and ADC with honest evidence boundaries', async () => {
     const pages = await Promise.all(WEEKS.map((item) => text(`curriculum/weeks/${item.suffix}.md`)));
     const labs = await Promise.all(WEEKS.map((item) => json(`labs/manifests/${item.lab}.json`)));
+    const actuatorAssessment = await json('assessments/question-banks/assessment-w10.json');
     expect(pages[0]).toMatch(/输出比较|output compare/i); expect(pages[0]).toMatch(/1\s*kHz/i); expect(pages[0]).toMatch(/预装载|preload/i); expect(pages[0]).toMatch(/极性|polarity/i); expect(pages[0]).toMatch(/复用|alternate function/i); expect(pages[0]).toMatch(/呼吸/);
     expect(pages[1]).toMatch(/500\s*[-–—~至到]+\s*2500\s*(?:µs|us)/i); expect(pages[1]).toMatch(/TB6612/); expect(pages[1]).toMatch(/感性负载/); expect(pages[1]).toMatch(/STBY/); expect(pages[1]).toMatch(/独立供电/); expect(pages[1]).toMatch(/共地/);
     expect(pages[2]).toMatch(/输入捕获|input capture/i); expect(pages[2]).toMatch(/边沿时间戳/); expect(pages[2]).toMatch(/溢出/); expect(pages[2]).toMatch(/从模式.*复位|slave reset/is); expect(pages[2]).toMatch(/编码器.*速度|速度.*编码器/s); expect(pages[2]).toMatch(/2\s*%/);
     expect(pages[3]).toMatch(/逐次逼近/); expect(pages[3]).toMatch(/参考电压|VREF/i); expect(pages[3]).toMatch(/采样时间/); expect(pages[3]).toMatch(/通道顺序/); expect(pages[3]).toMatch(/对齐/); expect(pages[3]).toMatch(/校准/); expect(pages[3]).toMatch(/模拟.*GPIO|GPIO.*模拟/s); expect(pages[3]).toMatch(/raw/i); expect(pages[3]).toMatch(/mV/);
     for (const page of pages) { expect(page).toMatch(/3\.3\s*V/); expect(page).toMatch(/断电/); expect(page).toMatch(/共地/); expect(page).toMatch(/https:\/\/.*st\.com/i); }
     expect(JSON.stringify(labs[1])).toMatch(/独立供电/); expect(JSON.stringify(labs[1])).toMatch(/共地/);
+    const actuatorMaterials = `${pages[1]}\n${JSON.stringify(labs[1])}\n${JSON.stringify(actuatorAssessment)}`;
+    expect(actuatorMaterials).not.toMatch(/制动|刹车|short\s+brake/i);
+    expect(actuatorMaterials).toMatch(/停止输出/);
+    expect(actuatorMaterials).toMatch(/待机/);
     const actuatorAutomatic = labs[1].detectionChecks.find((item: any) => item.mode === 'automatic');
     expect(actuatorAutomatic).toMatchObject({ applicable: true, physicalHardware: false });
     expect(`${actuatorAutomatic.expectedEvidence} ${actuatorAutomatic.limitation}`).toMatch(/不.*运动|不能.*运动|不代表.*运动/);
@@ -65,29 +133,37 @@ describe('phase 3 curriculum contract', () => {
 });
 
 describe('phase 3 firmware boundaries', () => {
+  it('executes production firmware logic in a host C behavior test', () => {
+    runHostBehaviorTest();
+  });
+
+  it('rejects a duty-ramp mutation after compiling it into the host executable', () => {
+    runHostMutationTest();
+  });
+
   it('generates 1 kHz PWM and changes duty in bounded steps', async () => {
     const ioc = await text('firmware/lessons/w09-pwm/w09-pwm.ioc');
     const tim = await text('firmware/lessons/w09-pwm/Core/Src/tim.c');
     const app = await text('firmware/lessons/w09-pwm/App/app.c');
+    const logic = await text('firmware/lessons/w09-pwm/App/pwm_logic.c');
     expect(ioc).toMatch(/PA0-WKUP\.Signal=S_TIM2_CH1_ETR/); expect(ioc).toMatch(/TIM2\.Prescaler=71/); expect(ioc).toMatch(/TIM2\.Period=999/); expect(ioc).toMatch(/TIM2\.Channel-PWM\\ Generation1\\ CH1=TIM_CHANNEL_1/);
     expect(tim).toMatch(/htim2\.Init\.Prescaler\s*=\s*71/); expect(tim).toMatch(/htim2\.Init\.Period\s*=\s*999/); expect(tim).toMatch(/TIM_OCMODE_PWM1/); expect(tim).toMatch(/HAL_TIM_PWM_ConfigChannel/);
-    expect(app).toMatch(/__HAL_TIM_ENABLE_OCxPRELOAD\s*\(\s*&htim2\s*,\s*TIM_CHANNEL_1\s*\)/); expect(app).toMatch(/HAL_TIM_PWM_Start\s*\(\s*&htim2\s*,\s*TIM_CHANNEL_1\s*\)/); expect(app).toMatch(/__HAL_TIM_SET_COMPARE/); expect(app).toMatch(/DUTY_STEP\s*=\s*100U/); expect(app).toMatch(/HAL_GetTick/); expect(app).not.toMatch(/HAL_Delay/);
+    expect(app).toMatch(/__HAL_TIM_ENABLE_OCxPRELOAD\s*\(\s*&htim2\s*,\s*TIM_CHANNEL_1\s*\)/); expect(app).toMatch(/HAL_TIM_PWM_Start\s*\(\s*&htim2\s*,\s*TIM_CHANNEL_1\s*\)/); expect(app).toMatch(/PwmRamp_Init/); expect(app).toMatch(/PwmRamp_Update/); expect(app).toMatch(/__HAL_TIM_SET_COMPARE/); expect(app).toMatch(/HAL_GetTick/); expect(app).not.toMatch(/HAL_Delay/);
+    expect(logic).toMatch(/DUTY_STEP\s*=\s*100U/); expect(logic).toMatch(/STEP_INTERVAL_MS\s*=\s*100U/);
   });
 
   it('rejects unsafe actuator commands before changing timer or bridge outputs', async () => {
     const ioc = await text('firmware/lessons/w10-actuators/w10-actuators.ioc');
     const tim = await text('firmware/lessons/w10-actuators/Core/Src/tim.c');
     const actuators = await text('firmware/lessons/w10-actuators/App/actuators.c');
+    const logic = await text('firmware/lessons/w10-actuators/App/actuator_logic.c');
     const app = await text('firmware/lessons/w10-actuators/App/app.c');
     expect(ioc).toMatch(/PA0-WKUP\.Signal=S_TIM2_CH1_ETR/); expect(ioc).toMatch(/PA6\.Signal=S_TIM3_CH1/); expect(ioc).toMatch(/TIM2\.Period=19999/); expect(ioc).toMatch(/TIM3\.Period=49/);
     expect(ioc).toMatch(/PA1\.GPIO_Label=MOTOR_IN1[\s\S]*PA1\.PinState=GPIO_PIN_RESET/); expect(ioc).toMatch(/PA2\.GPIO_Label=MOTOR_IN2[\s\S]*PA2\.PinState=GPIO_PIN_RESET/); expect(ioc).toMatch(/PB0\.GPIO_Label=MOTOR_STBY[\s\S]*PB0\.PinState=GPIO_PIN_RESET/);
     expect(tim).toMatch(/htim2\.Init\.Period\s*=\s*19999/); expect(tim).toMatch(/htim3\.Init\.Period\s*=\s*49/);
-    expect(actuators).toMatch(/Actuators_SetServoPulseUs/); expect(actuators).toMatch(/pulse_us\s*<\s*500U\s*\|\|\s*pulse_us\s*>\s*2500U/);
-    expect(actuators).toMatch(/Actuators_SetMotorCommand/); expect(actuators).toMatch(/command\s*<\s*-1000\s*\|\|\s*command\s*>\s*1000/);
-    expect(actuators.indexOf('pulse_us < 500U')).toBeLessThan(actuators.indexOf('__HAL_TIM_SET_COMPARE(&htim2'));
-    expect(actuators.indexOf('command < -1000')).toBeLessThan(actuators.indexOf('__HAL_TIM_SET_COMPARE(&htim3'));
-    expect(actuators).toMatch(/command\s*<\s*-1000[\s\S]*?return HAL_ERROR;\s*HAL_GPIO_WritePin\s*\(\s*MOTOR_STBY_GPIO_Port\s*,\s*MOTOR_STBY_Pin\s*,\s*GPIO_PIN_RESET\s*\);\s*if\s*\(\s*command\s*==\s*0\s*\)/);
-    expect(actuators).toMatch(/MOTOR_IN1_Pin/); expect(actuators).toMatch(/MOTOR_IN2_Pin/); expect(actuators).toMatch(/MOTOR_STBY_Pin/);
+    expect(logic).toMatch(/ActuatorLogic_SetServoPulseUs/); expect(logic).toMatch(/ActuatorLogic_SetMotorCommand/);
+    expect(actuators).toMatch(/ActuatorLogic_SetServoPulseUs/); expect(actuators).toMatch(/ActuatorLogic_SetMotorCommand/);
+    expect(actuators).toMatch(/ACTUATOR_SIGNAL_SERVO_COMPARE/); expect(actuators).toMatch(/ACTUATOR_SIGNAL_MOTOR_COMPARE/); expect(actuators).toMatch(/ACTUATOR_SIGNAL_IN1/); expect(actuators).toMatch(/ACTUATOR_SIGNAL_IN2/); expect(actuators).toMatch(/ACTUATOR_SIGNAL_STBY/);
     expect(app).toMatch(/Actuators_Init/); expect(app).toMatch(/Actuators_SetServoPulseUs/); expect(app).toMatch(/Actuators_SetMotorCommand/);
   });
 
@@ -96,13 +172,15 @@ describe('phase 3 firmware boundaries', () => {
     const tim = await text('firmware/lessons/w11-tim-measurement/Core/Src/tim.c');
     const main = await text('firmware/lessons/w11-tim-measurement/Core/Src/main.c');
     const app = await text('firmware/lessons/w11-tim-measurement/App/app.c');
+    const logic = await text('firmware/lessons/w11-tim-measurement/App/measurement_logic.c');
     expect(ioc).toMatch(/PA0-WKUP\.Signal=S_TIM2_CH1_ETR/); expect(ioc).toMatch(/PA6\.Signal=S_TIM3_CH1/); expect(ioc).toMatch(/SH\.S_TIM3_CH1\.0=TIM3_CH1,PWM_Input_1/); expect(ioc).toMatch(/PB6\.Signal=S_TIM4_CH1/); expect(ioc).toMatch(/PB7\.Signal=S_TIM4_CH2/);
     expect(ioc).not.toMatch(/^PA7\./m); expect(app).toMatch(/__HAL_TIM_URS_ENABLE\s*\(\s*&htim3\s*\)/);
     expect(tim).toMatch(/TIM_OCMODE_PWM1/); expect(tim).toMatch(/TIM_SLAVEMODE_RESET/); expect(tim).toMatch(/TIM_TS_TI1FP1/); expect(tim).toMatch(/TIM_ENCODERMODE_TI12/);
     expect(tim).toMatch(/TIM_INPUTCHANNELPOLARITY_RISING[\s\S]*TIM_ICSELECTION_DIRECTTI/); expect(tim).toMatch(/TIM_INPUTCHANNELPOLARITY_FALLING[\s\S]*TIM_ICSELECTION_INDIRECTTI/); expect(tim.match(/HAL_TIM_IC_ConfigChannel/g)).toHaveLength(2);
     const startup = `${main}\n${app}`;
     expect(startup).toMatch(/HAL_TIM_PWM_Start\s*\(\s*&htim2\s*,\s*TIM_CHANNEL_1/); expect(startup).toMatch(/HAL_TIM_IC_Start_IT\s*\(\s*&htim3\s*,\s*TIM_CHANNEL_1/); expect(startup).toMatch(/HAL_TIM_IC_Start_IT\s*\(\s*&htim3\s*,\s*TIM_CHANNEL_2/); expect(startup).toMatch(/HAL_TIM_Encoder_Start\s*\(\s*&htim4\s*,\s*TIM_CHANNEL_ALL/);
-    expect(app).toMatch(/HAL_TIM_IC_CaptureCallback/); expect(app).toMatch(/HAL_TIM_PeriodElapsedCallback/); expect(app).toMatch(/capture_overflows/); expect(app).toMatch(/period_ticks\s*=.*capture_overflows/s); expect(app).toMatch(/frequency_hz\s*=\s*CAPTURE_CLOCK_HZ\s*\/\s*period_ticks/); expect(app).toMatch(/duty_per_mille\s*=.*high_ticks.*1000U.*period_ticks/s); expect(app).toMatch(/encoder_speed\s*=.*encoder_delta/s);
+    expect(app).toMatch(/HAL_TIM_IC_CaptureCallback/); expect(app).toMatch(/HAL_TIM_PeriodElapsedCallback/); expect(app).toMatch(/MeasurementLogic_RecordHighCapture/); expect(app).toMatch(/MeasurementLogic_RecordPeriodCapture/); expect(app).toMatch(/MeasurementLogic_RecordCaptureOverflow/); expect(app).toMatch(/MeasurementLogic_SampleEncoder/);
+    expect(logic).toMatch(/high_ticks\s*=.*capture_overflows.*CAPTURE_PERIOD_TICKS/s); expect(logic).toMatch(/frequency_hz\s*=\s*CAPTURE_CLOCK_HZ\s*\/\s*period_ticks/); expect(logic).toMatch(/duty_per_mille\s*=.*high_ticks.*1000U.*period_ticks/s); expect(logic).toMatch(/encoder_delta.*1000.*elapsed_ms/s);
   });
 
   it('calibrates ADC once and exposes three raw and millivolt readings', async () => {
@@ -110,31 +188,16 @@ describe('phase 3 firmware boundaries', () => {
     const adc = await text('firmware/lessons/w12-adc/Core/Src/adc.c');
     const app = await text('firmware/lessons/w12-adc/App/app.c');
     const appHeader = await text('firmware/lessons/w12-adc/App/app.h');
+    const logic = await text('firmware/lessons/w12-adc/App/adc_scan_logic.c');
     expect(ioc).toMatch(/PA0-WKUP\.Signal=ADCx_IN0/); expect(ioc).toMatch(/PA1\.Signal=ADCx_IN1/); expect(ioc).toMatch(/PA2\.Signal=ADCx_IN2/); expect(ioc).toMatch(/SH\.ADCx_IN0\.0=ADC1_IN0,IN0/); expect(ioc).toMatch(/SH\.ADCx_IN1\.0=ADC1_IN1,IN1/); expect(ioc).toMatch(/SH\.ADCx_IN2\.0=ADC1_IN2,IN2/);
     expect(ioc).toMatch(/ADC1\.SamplingTime-0\\#ChannelRegularConversion=ADC_SAMPLETIME_239CYCLES_5/); expect(ioc).toMatch(/ADC1\.SamplingTime-1\\#ChannelRegularConversion=ADC_SAMPLETIME_239CYCLES_5/); expect(ioc).toMatch(/ADC1\.SamplingTime-2\\#ChannelRegularConversion=ADC_SAMPLETIME_239CYCLES_5/);
     expect(ioc).toMatch(/ADC1\.Rank-0\\#ChannelRegularConversion=1/); expect(ioc).toMatch(/ADC1\.Rank-1\\#ChannelRegularConversion=2/); expect(ioc).toMatch(/ADC1\.Rank-2\\#ChannelRegularConversion=3/);
     expect(ioc).toMatch(/ADC1\.DiscontinuousConvMode=ENABLE/); expect(ioc).toMatch(/ADC1\.NbrOfDiscConversion=1/);
     expect(adc).toMatch(/ADC_SCAN_ENABLE/); expect(adc).toMatch(/NbrOfConversion\s*=\s*3/); expect(adc).toMatch(/DiscontinuousConvMode\s*=\s*ENABLE/); expect(adc).toMatch(/NbrOfDiscConversion\s*=\s*1/); expect(adc.match(/HAL_ADC_ConfigChannel/g)).toHaveLength(3);
     expect(adc).toMatch(/GPIO_MODE_ANALOG/); expect(adc).toMatch(/GPIO_PIN_0\|GPIO_PIN_1\|GPIO_PIN_2/);
-    expect(app.match(/HAL_ADCEx_Calibration_Start/g)).toHaveLength(1); expect(app).toMatch(/for\s*\([^)]*index[^)]*<\s*ADC_CHANNEL_COUNT[^)]*\)\s*\{[\s\S]*HAL_ADC_Start[\s\S]*HAL_ADC_PollForConversion[\s\S]*HAL_ADC_GetValue[\s\S]*\}/); expect(app).toMatch(/HAL_ADC_PollForConversion\s*\(\s*&hadc1\s*,\s*10U\s*\)/); expect(app).toMatch(/HAL_ADC_Stop\s*\(\s*&hadc1\s*\)/); expect(app.indexOf('HAL_ADC_PollForConversion')).toBeLessThan(app.indexOf('HAL_ADC_Stop')); expect(app).toMatch(/3300U/); expect(app).toMatch(/4095U/);
+    expect(app.match(/HAL_ADCEx_Calibration_Start/g)).toHaveLength(1); expect(app).toMatch(/AdcScanLogic_Begin/); expect(app).toMatch(/AdcScanLogic_CurrentAction/); expect(app).toMatch(/HAL_ADC_Start/); expect(app).toMatch(/HAL_ADC_PollForConversion\s*\(\s*&hadc1\s*,\s*10U\s*\)/); expect(app).toMatch(/HAL_ADC_GetValue/); expect(app).toMatch(/HAL_ADC_Stop\s*\(\s*&hadc1\s*\)/); expect(app).toMatch(/AdcScanLogic_CompleteAction/);
+    expect(logic).toMatch(/ADC_SCAN_ACTION_START/); expect(logic).toMatch(/ADC_SCAN_ACTION_POLL/); expect(logic).toMatch(/ADC_SCAN_ACTION_READ/); expect(logic).toMatch(/ADC_SCAN_ACTION_STOP/); expect(logic).toMatch(/3300U/); expect(logic).toMatch(/4095U/);
     expect(appHeader).toMatch(/uint16_t\s+raw\s*\[\s*3U?\s*\]/); expect(appHeader).toMatch(/uint16_t\s+millivolts\s*\[\s*3U?\s*\]/); expect(appHeader).toMatch(/App_GetAdcReadings/);
   });
 
-  it('rejects key preload, actuator, capture and ADC mutations', async () => {
-    const w09App = await text('firmware/lessons/w09-pwm/App/app.c');
-    const actuators = await text('firmware/lessons/w10-actuators/App/actuators.c');
-    const w11Tim = await text('firmware/lessons/w11-tim-measurement/Core/Src/tim.c');
-    const w11App = await text('firmware/lessons/w11-tim-measurement/App/app.c');
-    const w12Ioc = await text('firmware/lessons/w12-adc/w12-adc.ioc');
-    const w12Adc = await text('firmware/lessons/w12-adc/Core/Src/adc.c');
-    const w12App = await text('firmware/lessons/w12-adc/App/app.c');
-    expect(w09App.replace('__HAL_TIM_ENABLE_OCxPRELOAD', 'RemovedPreload')).not.toMatch(/__HAL_TIM_ENABLE_OCxPRELOAD/);
-    expect(actuators.replace('pulse_us < 500U', 'pulse_us < 0U')).not.toMatch(/pulse_us\s*<\s*500U/);
-    expect(actuators.replace('command < -1000', 'command < -32768')).not.toMatch(/command\s*<\s*-1000/);
-    expect(w11Tim.replace('TIM_SLAVEMODE_RESET', 'TIM_SLAVEMODE_DISABLE')).not.toMatch(/TIM_SLAVEMODE_RESET/);
-    expect(w11App.replace('__HAL_TIM_URS_ENABLE(&htim3)', 'RemovedUrs()')).not.toMatch(/__HAL_TIM_URS_ENABLE/);
-    expect(w12App.replace('HAL_ADCEx_Calibration_Start', 'RemovedCalibration')).not.toMatch(/HAL_ADCEx_Calibration_Start/);
-    expect(w12Adc.replace('GPIO_MODE_ANALOG', 'GPIO_MODE_INPUT')).not.toMatch(/GPIO_MODE_ANALOG/);
-    expect(w12Ioc.replace('ADC1.Rank-2\\#ChannelRegularConversion=3', 'ADC1.Rank-2\\#ChannelRegularConversion=2')).not.toMatch(/ADC1\.Rank-2\\#ChannelRegularConversion=3/);
-  });
 });

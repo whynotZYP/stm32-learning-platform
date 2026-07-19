@@ -7,7 +7,7 @@
   "sourceCourseIds": ["16"],
   "prerequisiteTagIds": ["tim.pwm", "foundation.electricity"],
   "targetTagIds": ["tim.pwm"],
-  "objectives": ["把舵机角度转换成 500 至 2500 us 脉宽", "用 TB6612 的方向、PWM 和 STBY 输入控制电机", "在写寄存器前拒绝越界命令并解释独立供电和共地"],
+  "objectives": ["把舵机角度转换成 500 至 2500 us 脉宽", "用 TB6612 的方向、PWM 和 STBY 输入控制电机，并让 0 命令停止输出后保持待机", "在写寄存器前拒绝越界命令并解释独立供电和共地"],
   "conceptPath": "curriculum/weeks/w10.md",
   "labIds": ["lab-w10-actuators"],
   "assessmentId": "assessment-w10",

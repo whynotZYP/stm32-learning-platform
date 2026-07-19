@@ -46,6 +46,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/app.c
     App/actuators.c
+    App/actuator_logic.c
 )
 
 # Add include paths

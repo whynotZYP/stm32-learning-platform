@@ -3,7 +3,7 @@
   "hardware":["STM32F103C8T6","ST-LINK","舵机","TB6612FNG","直流电机","独立负载电源"],
   "wiringChecklist":["断电后接 PA0 到舵机信号，PA6 到 TB6612 PWMA，PA1/PA2 到 AIN1/AIN2，PB0 到 STBY。","舵机和电机使用独立供电，独立电源地、TB6612 地与 STM32 地必须共地；逻辑输入保持 3.3 V。","先让 STBY 保持低电平，检查无短路和极性正确后再上电。"],
   "safety":["搭接和改动电机、舵机线路前必须断电，旋转部件与手指保持距离。","电机是感性大电流负载，只能由 TB6612 驱动并使用独立供电和共地，禁止 GPIO 直接驱动。"],
-  "expectedObservations":["合法 500–2500 us 命令改变舵机角度，越界命令被拒绝且比较寄存器不改变。","-1000..1000 命令控制电机方向和占空比，0 命令制动并关闭有效 PWM。"],
+  "expectedObservations":["合法 500–2500 us 命令改变舵机角度，越界命令被拒绝且比较寄存器不改变。","-1000..1000 命令控制电机方向和占空比；0 命令停止 PWM 输出、清零方向脚并保持 STBY 低电平待机。"],
   "faultTasks":["保持 STBY 低或在断电状态暂时断开共地，预测为何负载不动作；恢复共地和 STBY 后由人工重新验证。"],
   "detectionChecks":[{"mode":"automatic","action":"构建并检查命令边界早于硬件写入","expectedEvidence":"ELF 与边界检查，不代表负载运动","limitation":"自动结果不能证明运动、声音或电流","applicable":true,"evidenceSource":"simulator","physicalHardware":false},{"mode":"semi-automatic","action":"读取比较值但不宣称负载已运动","expectedEvidence":"该方式不用于物理通过","limitation":"寄存器不能证明接线和机械动作","applicable":false,"reason":"运动、声音和电流只能人工确认","evidenceSource":"device","physicalHardware":false},{"mode":"manual","action":"人工确认角度方向声音和供电电流","expectedEvidence":"动作视频、接线与电流记录","limitation":"必须在真实安全接线上完成","applicable":true,"evidenceSource":"manual","physicalHardware":true}],
   "firmwareProject":"firmware/lessons/w10-actuators"
