@@ -56,6 +56,10 @@ jobs:
       - run: npm ci
       - run: npm run validate:content
       - run: npm test
+      - name: Run device protocol host-C contract
+        env:
+          HOST_CC: gcc
+        run: npx vitest run --config web/vitest.config.ts scripts/firmware/device-test-firmware.test.ts
       - run: npm run typecheck
       - run: npm run build
       - run: npx playwright install --with-deps chromium
