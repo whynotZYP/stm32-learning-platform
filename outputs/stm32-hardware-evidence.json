@@ -3,6 +3,8 @@
   "board": "STM32F103C8T6",
   "adapter": "ST-LINK V2 + 3.3 V USB-TTL",
   "firmware": "device-test-v1",
+  "deferred": true,
+  "deferredReason": "用户于 2026-07-20 明确要求本阶段暂不进行真实开发板检测；所有检查继续保持待验证。",
   "tester": "",
   "startedAt": null,
   "finishedAt": null,
