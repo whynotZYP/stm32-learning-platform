@@ -74,7 +74,9 @@ $document = [ordered]@{
   deployment = if ($previous -and $previous.deployment) { $previous.deployment } else { [ordered]@{} }
 }
 if ($previous -and $previous.package) { $document.package = $previous.package }
-$document | ConvertTo-Json -Depth 12 | Set-Content -Encoding UTF8 $evidencePath
+$json = $document | ConvertTo-Json -Depth 12
+$utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($evidencePath, $json, $utf8WithoutBom)
 
 Push-Location $root
 try {
