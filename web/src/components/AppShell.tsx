@@ -1,4 +1,5 @@
 import { Link, Outlet } from 'react-router-dom';
+import { OfflineStatus } from './OfflineStatus';
 
 export function AppShell() {
   return <>
@@ -12,6 +13,7 @@ export function AppShell() {
         <Link to="/device">开发板检测</Link>
       </nav>
     </header>
+    <OfflineStatus />
     <main><Outlet /></main>
   </>;
 }
