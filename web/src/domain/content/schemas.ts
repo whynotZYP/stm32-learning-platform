@@ -52,7 +52,7 @@ export const LessonManifestSchema = z.object({
   conceptPath: RepositoryPath,
   labIds: z.array(Id),
   assessmentId: Id,
-  safety: z.array(z.string().min(7)).min(1),
+  safety: z.array(z.string().min(8)).min(1),
   detectionChecks: DetectionChecksSchema,
 });
 

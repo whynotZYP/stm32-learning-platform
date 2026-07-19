@@ -24,7 +24,7 @@ function LabChecklistForm({ lesson, lab, now, onConfirm }: {
   const observation = lab.expectedObservations[0];
   const manualCheck = lab.detectionChecks.find((check) => check.mode === 'manual' && check.applicable && check.evidenceSource === 'manual' && check.physicalHardware);
   const manifestsValid = LessonManifestSchema.safeParse(lesson).success && LabManifestSchema.safeParse(lab).success;
-  const matchingLesson = lesson.id === lab.lessonId;
+  const matchingLesson = lesson.id === lab.lessonId && lesson.labIds.includes(lab.id);
   const safetyAvailable = lab.safety.includes('接线已断电复核');
   const available = manifestsValid && matchingLesson && safetyAvailable && Boolean(manualCheck) && lesson.targetTagIds.length > 0;
   const ready = available && safetyConfirmed && observationConfirmed && !emitted;

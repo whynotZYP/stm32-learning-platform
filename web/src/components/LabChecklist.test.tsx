@@ -17,7 +17,7 @@ const lab: LabManifest = {
 };
 
 const lesson: LessonManifest = {
-  schemaVersion: 1, id: 'w04-gpio-output', week: 4, title: 'GPIO 输出', estimatedMinutes: 60, sourceCourseIds: ['05'], prerequisiteTagIds: [], targetTagIds: ['gpio.output-mode'], objectives: ['完成一个安全的 GPIO 输出实验。'], conceptPath: 'curriculum/w04.md', labIds: ['lab-w04-led'], assessmentId: 'entry-diagnostic', safety: ['接线已断电复核'], detectionChecks: lab.detectionChecks,
+  schemaVersion: 1, id: 'w04-gpio-output', week: 4, title: 'GPIO 输出', estimatedMinutes: 60, sourceCourseIds: ['05'], prerequisiteTagIds: [], targetTagIds: ['gpio.output-mode'], objectives: ['完成一个安全的 GPIO 输出实验。'], conceptPath: 'curriculum/w04.md', labIds: ['lab-w04-led'], assessmentId: 'entry-diagnostic', safety: ['接线已断电复核并确认极性'], detectionChecks: lab.detectionChecks,
 };
 
 describe('LabChecklist', () => {
@@ -53,6 +53,14 @@ describe('LabChecklist', () => {
     render(<LabChecklist lesson={invalidLesson} lab={lab} now="2026-07-19T00:00:00.000Z" onConfirm={onConfirm} />);
     expect(screen.getByText('此实验暂时不能记录人工观察。')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '记录实验观察' })).toBeDisabled();
+  });
+
+  it('requires the lab to be listed by its matching lesson before recording evidence', () => {
+    const onConfirm = vi.fn();
+    render(<LabChecklist lesson={{ ...lesson, labIds: ['lab-other'] }} lab={lab} now="2026-07-19T00:00:00.000Z" onConfirm={onConfirm} />);
+    expect(screen.getByText('实验与课程信息不匹配，暂时不能记录。')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '记录实验观察' })).toBeDisabled();
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 
   it('resets confirmations for a new matching lab and derives that lesson targets', () => {

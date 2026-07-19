@@ -21,7 +21,10 @@ export function AssessmentPage() {
     : {}, [assessment]);
 
   useEffect(() => { setAnswers(initialAnswers); setSubmitting(false); setMessage(undefined); }, [initialAnswers]);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   if (!assessment) return <section className="page"><h1>没有找到这份测验</h1><p>目前只提供入门诊断，请从学习首页重新进入。</p></section>;
 

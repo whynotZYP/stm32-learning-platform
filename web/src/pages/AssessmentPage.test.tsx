@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -18,7 +19,7 @@ describe('AssessmentPage', () => {
   it('renders all four fieldsets and records every evidence item with one submission', async () => {
     const store = repository();
     const router = createMemoryRouter([{ path: '/assessment/:assessmentId', element: <AssessmentPage /> }], { initialEntries: ['/assessment/entry-diagnostic'] });
-    render(<ProgressProvider repository={store}><RouterProvider router={router} /></ProgressProvider>);
+    render(<StrictMode><ProgressProvider repository={store}><RouterProvider router={router} /></ProgressProvider></StrictMode>);
     expect(await screen.findAllByRole('group')).toHaveLength(4);
     for (const input of screen.getAllByLabelText(/得分（满分/)) fireEvent.change(input, { target: { value: '10' } });
     for (const input of screen.getAllByLabelText('你的回答')) fireEvent.change(input, { target: { value: '已完成回答' } });
@@ -37,7 +38,7 @@ describe('AssessmentPage', () => {
       snapshot: async () => structuredClone(state), replace: async () => undefined,
     };
     const router = createMemoryRouter([{ path: '/assessment/:assessmentId', element: <AssessmentPage /> }], { initialEntries: ['/assessment/entry-diagnostic'] });
-    render(<ProgressProvider repository={store}><RouterProvider router={router} /></ProgressProvider>);
+    render(<StrictMode><ProgressProvider repository={store}><RouterProvider router={router} /></ProgressProvider></StrictMode>);
     await screen.findAllByRole('group');
     for (const input of screen.getAllByLabelText('你的回答')) fireEvent.change(input, { target: { value: '回答' } });
     const button = screen.getByRole('button', { name: '提交诊断' });
