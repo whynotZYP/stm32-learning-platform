@@ -1,7 +1,11 @@
 import { z } from 'zod';
 
 const Id = z.string().min(1).regex(/^[a-z0-9][a-z0-9.-]*$/);
-const RepositoryPath = z.string().min(1).refine((value) => !value.includes('..'), '路径不能包含 ..');
+export const RepositoryPathSchema = z.string().min(1)
+  .refine((value) => !/^[A-Za-z]:/.test(value) && !value.startsWith('/') && !value.startsWith('\\') && !value.includes('\\'), '路径必须是使用正斜杠的仓库相对路径')
+  .refine((value) => !value.split('/').includes('..'), '路径不能包含 ..');
+const RemediationContentPathSchema = RepositoryPathSchema.refine((value) => /^curriculum\/remediation\/[^/]+\.md$/.test(value), '补救内容必须位于 curriculum/remediation/*.md');
+const ExtensionContentPathSchema = RepositoryPathSchema.refine((value) => /^curriculum\/extensions\/[^/]+\.md$/.test(value), '拓展内容必须位于 curriculum/extensions/*.md');
 
 export const KnowledgeTagSchema = z.object({
   schemaVersion: z.literal(1),
@@ -49,13 +53,13 @@ export const LessonManifestSchema = z.object({
   prerequisiteTagIds: z.array(Id),
   targetTagIds: z.array(Id).min(1),
   objectives: z.array(z.string().min(8)).min(1),
-  conceptPath: RepositoryPath,
+  conceptPath: RepositoryPathSchema,
   labIds: z.array(Id),
   assessmentId: Id,
   safety: z.array(z.string().min(8)).min(1),
   detectionChecks: DetectionChecksSchema,
-  remediationPaths: z.array(RepositoryPath).optional(),
-  extensionPaths: z.array(RepositoryPath).optional(),
+  remediationPaths: z.array(RepositoryPathSchema).optional(),
+  extensionPaths: z.array(RepositoryPathSchema).optional(),
 });
 
 export const WeekManifestSchema = z.object({
@@ -79,7 +83,7 @@ export const LabManifestSchema = z.object({
   expectedObservations: z.array(z.string().min(4)).min(1),
   faultTasks: z.array(z.string().min(8)).min(1),
   detectionChecks: DetectionChecksSchema,
-  firmwareProject: RepositoryPath.optional(),
+  firmwareProject: RepositoryPathSchema.optional(),
 });
 
 export const AssessmentItemSchema = z.object({
@@ -104,18 +108,18 @@ export const RemediationManifestSchema = z.object({
   id: Id,
   title: z.string().min(2),
   targetTagIds: z.array(Id).min(1),
-  estimatedMinutes: z.number().int().min(20).max(30),
-  contentPath: RepositoryPath,
+  estimatedMinutes: z.number().int().min(20).max(40),
+  contentPath: RemediationContentPathSchema,
   returnLessonId: Id,
-});
+}).strict();
 
 export const ExtensionManifestSchema = z.object({
   schemaVersion: z.literal(1),
   id: Id,
   title: z.string().min(2),
   requiredTagIds: z.array(Id).min(1),
-  contentPath: RepositoryPath,
-});
+  contentPath: ExtensionContentPathSchema,
+}).strict();
 
 export const PracticalGateSchema = z.object({
   schemaVersion: z.literal(1),
@@ -124,7 +128,16 @@ export const PracticalGateSchema = z.object({
   title: z.string().min(2),
   lessonIds: z.array(Id).min(1),
   requiredTagIds: z.array(Id).min(1),
-  items: z.array(AssessmentItemSchema).min(1),
+  items: z.array(AssessmentItemSchema).min(4),
+}).strict().superRefine((gate, context) => {
+  const itemIds = gate.items.map((item) => item.id);
+  if (new Set(itemIds).size !== itemIds.length) context.addIssue({ code: z.ZodIssueCode.custom, path: ['items'], message: '实践考核题目 ID 必须唯一' });
+  const expectedTotals: Record<string, number> = { concept: 25, configuration: 25, practical: 35, reflection: 15 };
+  const actualTotals: Record<string, number> = {};
+  for (const item of gate.items) actualTotals[item.kind] = (actualTotals[item.kind] ?? 0) + item.maxScore;
+  if (Object.entries(expectedTotals).some(([kind, total]) => actualTotals[kind] !== total)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['items'], message: '实践考核必须按 25/25/35/15 覆盖四类证据' });
+  }
 });
 
 export const CourseMapSchema = z.object({

@@ -9,6 +9,16 @@ import {
   RemediationManifestSchema,
 } from './schemas';
 
+const validPracticalGate = {
+  schemaVersion: 1, id: 'gate-01', phase: 1, title: '第一阶段实践', lessonIds: ['w01-foundations'], requiredTagIds: ['gpio.output-mode'],
+  items: [
+    { id: 'gate-01-concept', kind: 'concept', prompt: '解释阶段核心概念以及信号路径。', tagIds: ['gpio.output-mode'], maxScore: 25, rubric: ['解释准确'] },
+    { id: 'gate-01-configuration', kind: 'configuration', prompt: '说明阶段配置和代码选择原因。', tagIds: ['gpio.output-mode'], maxScore: 25, rubric: ['配置正确'] },
+    { id: 'gate-01-practical', kind: 'practical', prompt: '完成阶段综合实践并提交证据。', tagIds: ['gpio.output-mode'], maxScore: 35, rubric: ['证据完整'] },
+    { id: 'gate-01-reflection', kind: 'reflection', prompt: '复述阶段收获并整理学习笔记。', tagIds: ['gpio.output-mode'], maxScore: 15, rubric: ['反思具体'] },
+  ],
+};
+
 describe('content contracts', () => {
   it('accepts a lesson with objectives, evidence and safety text', () => {
     const result = LessonManifestSchema.safeParse({
@@ -77,13 +87,30 @@ describe('content contracts', () => {
   });
 
   it('accepts remediation, extension and practical gate contracts', () => {
-    expect(RemediationManifestSchema.safeParse({ schemaVersion: 1, id: 'concept-breakdown', title: '概念拆解', targetTagIds: ['gpio.output-mode'], estimatedMinutes: 25, contentPath: 'curriculum/remediation/concept-breakdown.md', returnLessonId: 'w04-gpio-output' }).success).toBe(true);
+    expect(RemediationManifestSchema.safeParse({ schemaVersion: 1, id: 'concept-breakdown', title: '概念拆解', targetTagIds: ['gpio.output-mode'], estimatedMinutes: 40, contentPath: 'curriculum/remediation/concept-breakdown.md', returnLessonId: 'w04-gpio-output' }).success).toBe(true);
     expect(ExtensionManifestSchema.safeParse({ schemaVersion: 1, id: 'freertos', title: 'FreeRTOS 路线', requiredTagIds: ['system.integration'], contentPath: 'curriculum/extensions/freertos.md' }).success).toBe(true);
-    expect(PracticalGateSchema.safeParse({ schemaVersion: 1, id: 'gate-01', phase: 1, title: '第一阶段实践', lessonIds: ['w01-foundations'], requiredTagIds: ['gpio.output-mode'], items: [{ id: 'gate-01-practical', kind: 'practical', prompt: '完成阶段综合实践并提交可复现证据。', tagIds: ['gpio.output-mode'], maxScore: 100, rubric: ['证据完整'] }] }).success).toBe(true);
+    expect(PracticalGateSchema.safeParse(validPracticalGate).success).toBe(true);
   });
 
-  it('rejects repository paths that escape the repository', () => {
-    expect(RemediationManifestSchema.safeParse({ schemaVersion: 1, id: 'unsafe', title: '不安全路径', targetTagIds: ['gpio.output-mode'], estimatedMinutes: 25, contentPath: '../outside.md', returnLessonId: 'w04-gpio-output' }).success).toBe(false);
+  it.each(['../outside.md', 'C:\\outside.md', '\\\\server\\share\\outside.md', '/outside.md'])('rejects repository path escape %s', (contentPath) => {
+    expect(RemediationManifestSchema.safeParse({ schemaVersion: 1, id: 'unsafe', title: '不安全路径', targetTagIds: ['gpio.output-mode'], estimatedMinutes: 25, contentPath, returnLessonId: 'w04-gpio-output' }).success).toBe(false);
+  });
+
+  it('requires new content manifests to use their planned Markdown directories', () => {
+    expect(RemediationManifestSchema.safeParse({ schemaVersion: 1, id: 'unsafe', title: '不安全路径', targetTagIds: ['gpio.output-mode'], estimatedMinutes: 25, contentPath: 'curriculum/knowledge-tags.json', returnLessonId: 'w04-gpio-output' }).success).toBe(false);
+    expect(ExtensionManifestSchema.safeParse({ schemaVersion: 1, id: 'unsafe', title: '不安全路径', requiredTagIds: ['system.integration'], contentPath: 'curriculum/remediation/not-extension.md' }).success).toBe(false);
+  });
+
+  it('rejects unknown fields in the three new manifest contracts', () => {
+    expect(RemediationManifestSchema.safeParse({ schemaVersion: 1, id: 'concept-breakdown', title: '概念拆解', targetTagIds: ['gpio.output-mode'], estimatedMinutes: 25, contentPath: 'curriculum/remediation/concept-breakdown.md', returnLessonId: 'w04-gpio-output', typo: true }).success).toBe(false);
+    expect(ExtensionManifestSchema.safeParse({ schemaVersion: 1, id: 'freertos', title: 'FreeRTOS 路线', requiredTagIds: ['system.integration'], contentPath: 'curriculum/extensions/freertos.md', typo: true }).success).toBe(false);
+    expect(PracticalGateSchema.safeParse({ ...structuredClone(validPracticalGate), typo: true }).success).toBe(false);
+  });
+
+  it('rejects a one-item or duplicate-item practical gate', () => {
+    const item = { id: 'gate-01-practical', kind: 'practical', prompt: '完成阶段综合实践并提交可复现证据。', tagIds: ['gpio.output-mode'], maxScore: 1, rubric: ['证据完整'] };
+    expect(PracticalGateSchema.safeParse({ ...structuredClone(validPracticalGate), items: [item] }).success).toBe(false);
+    expect(PracticalGateSchema.safeParse({ ...structuredClone(validPracticalGate), items: [item, item, item, item] }).success).toBe(false);
   });
 
   it('requires a Chinese title and plain-language explanation for knowledge tags', () => {

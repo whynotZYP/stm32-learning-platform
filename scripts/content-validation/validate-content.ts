@@ -1,6 +1,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { TextDecoder } from 'node:util';
 import {
   AssessmentSchema,
   CORE_HARDWARE_TAG_IDS,
@@ -9,6 +10,7 @@ import {
   LabManifestSchema,
   LessonManifestSchema,
   PracticalGateSchema,
+  RepositoryPathSchema,
 } from '../../web/src/domain/content/schemas';
 
 export interface ValidationReport {
@@ -179,15 +181,6 @@ export function validateCourseMap(input: unknown): ValidationReport {
   return { ok: errors.length === 0, errors };
 }
 
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    await stat(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function directoryExists(path: string): Promise<boolean> {
   try {
     return (await stat(path)).isDirectory();
@@ -267,9 +260,18 @@ function validateSourceInventory(value: unknown, expectedIds: string[], errors: 
   for (const record of records) {
     const id = typeof record?.sourceCourseId === 'string' ? record.sourceCourseId : '未知';
     const validDate = typeof record?.accessedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(record.accessedAt);
-    const validUrl = typeof record?.sourceUrl === 'string' && /^https:\/\//.test(record.sourceUrl);
+    const validUrl = typeof record?.sourceUrl === 'string' && isValidHttpsUrl(record.sourceUrl);
     if (typeof record?.sourceTitle !== 'string' || !record.sourceTitle.trim() || !validUrl || !validDate) addOnce(errors, `源 API 清单缺少完整来源信息：${id}`);
     if (!Array.isArray(record?.splSymbols) || !record.splSymbols.every((symbol: unknown) => typeof symbol === 'string' && symbol.trim())) addOnce(errors, `源 API 清单缺少 splSymbols：${id}`);
+  }
+}
+
+function isValidHttpsUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && Boolean(url.hostname);
+  } catch {
+    return false;
   }
 }
 
@@ -299,7 +301,7 @@ function validateMarkdown(markdown: string, suffix: string, week: number, errors
   if (week >= 3 && week <= 22 && !/https:\/\/(?:[^\s/]+\.)?(?:st\.com|dev\.st\.com)(?:\/|\s|$)/i.test(sources)) addOnce(errors, `外设周缺少 ST 官方一手资料：${suffix}`);
 }
 
-function validateAssessment(value: unknown, errors: string[]) {
+function validateAssessment(value: unknown, errors: string[], assessmentId: string) {
   const parsed = AssessmentSchema.safeParse(value);
   if (!parsed.success) addOnce(errors, '考核清单结构无效');
   const assessment = asRecord(value);
@@ -310,12 +312,48 @@ function validateAssessment(value: unknown, errors: string[]) {
     if (typeof item.kind === 'string' && typeof item.maxScore === 'number') totals[item.kind] = (totals[item.kind] ?? 0) + item.maxScore;
   }
   if (Object.entries(expectedTotals).some(([kind, total]) => totals[kind] !== total)) addOnce(errors, '考核未覆盖四类证据');
+  const itemIds = items.map((item) => typeof item.id === 'string' ? item.id : '');
+  if (new Set(itemIds).size !== itemIds.length) addOnce(errors, `考核题目 ID 必须唯一：${assessmentId}`);
 }
 
 function collectChecks(record: Record<string, any> | undefined): DetectionCheck[] {
   return Array.isArray(record?.detectionChecks)
     ? record.detectionChecks.map(asRecord).filter((check): check is DetectionCheck => check !== undefined)
     : [];
+}
+
+type LearningMarkdownKind = 'remediation' | 'extension';
+
+async function validateLearningMarkdownReference(root: string, reference: unknown, kind: LearningMarkdownKind, errors: string[]) {
+  const label = kind === 'remediation' ? '补救内容' : '拓展内容';
+  const expectedPath = kind === 'remediation'
+    ? /^curriculum\/remediation\/[^/]+\.md$/
+    : /^curriculum\/extensions\/[^/]+\.md$/;
+  if (!RepositoryPathSchema.safeParse(reference).success || typeof reference !== 'string' || !expectedPath.test(reference)) {
+    addOnce(errors, `${label}路径无效：${String(reference)}`);
+    return;
+  }
+
+  let markdown: string;
+  try {
+    const path = join(root, reference);
+    if (!(await stat(path)).isFile()) throw new Error('not a regular file');
+    markdown = new TextDecoder('utf-8', { fatal: true }).decode(await readFile(path));
+    if (!markdown.trim()) throw new Error('empty file');
+  } catch {
+    addOnce(errors, `${label}文件无效：${reference}`);
+    return;
+  }
+
+  const sections = markdownSections(markdown);
+  const requiredHeadings = kind === 'remediation'
+    ? ['目标', '解释', '微型练习', '检查问题', '通过证据', '返回课程']
+    : ['进入条件', '为什么适合继续学习', '起步项目', '尚未掌握', '权威资料'];
+  const missingContent = requiredHeadings.some((heading) => !(sections.get(heading) ?? '').trim());
+  const authoritativeSources = sections.get('权威资料')?.match(/https:\/\/\S+/g) ?? [];
+  if (missingContent || (kind === 'extension' && !authoritativeSources.some(isValidHttpsUrl))) {
+    addOnce(errors, `${label} Markdown 合同无效：${reference}`);
+  }
 }
 
 export async function validateRepositoryContent(root: string, options: RepositoryValidationOptions): Promise<ValidationReport> {
@@ -331,7 +369,8 @@ export async function validateRepositoryContent(root: string, options: Repositor
   const tagValue = await readJson(join(root, 'curriculum/knowledge-tags.json'), errors, '知识标签清单');
   const tagIds = validateTagGraph(tagValue, errors);
 
-  const selectedWeeks = options.weeks ?? Array.from({ length: 24 }, (_, index) => index + 1);
+  const completeWeeks = Array.from({ length: 24 }, (_, index) => index + 1);
+  const selectedWeeks = options.requireCompleteRepository ? completeWeeks : (options.weeks ?? completeWeeks);
   if (selectedWeeks.length === 0 || new Set(selectedWeeks).size !== selectedWeeks.length || selectedWeeks.some((week) => !Number.isInteger(week) || week < 1 || week > 24)) {
     addOnce(errors, '周范围必须是 1–24 之间且不能重复');
     return { ok: false, errors };
@@ -357,7 +396,11 @@ export async function validateRepositoryContent(root: string, options: Repositor
 
   for (const weekNumber of selectedWeeks) {
     const suffix = `w${String(weekNumber).padStart(2, '0')}`;
-    const week = courseMap.data.weeks.find((candidate) => candidate.week === weekNumber)!;
+    const week = courseMap.data.weeks.find((candidate) => candidate.week === weekNumber);
+    if (!week) {
+      addOnce(errors, `课程地图缺少第 ${weekNumber} 周`);
+      continue;
+    }
     const lessonPath = join(root, `curriculum/weeks/${suffix}.json`);
     const markdownPath = join(root, `curriculum/weeks/${suffix}.md`);
     const lessonValue = await readJson(lessonPath, errors, `周清单 ${suffix}`);
@@ -368,6 +411,7 @@ export async function validateRepositoryContent(root: string, options: Repositor
     lessons.push(lesson);
     validateDetectionChecks(lesson.detectionChecks, errors);
     if (lesson.week !== weekNumber || !week.lessonIds.includes(lesson.id)) addOnce(errors, `周清单与课程地图不一致：${suffix}`);
+    if (!sameSetWithMultiplicity(readStringArray(lesson.sourceCourseIds) ?? [], week.sourceCourseIds)) addOnce(errors, `课程源课程与课程地图不一致：${suffix}`);
     for (const id of week.lessonIds) {
       if (id !== lesson.id) addOnce(errors, `课程地图引用的课程清单不存在：${id}`);
     }
@@ -378,9 +422,8 @@ export async function validateRepositoryContent(root: string, options: Repositor
     for (const sourceId of readStringArray(lesson.sourceCourseIds) ?? []) {
       if (!courseMap.data.sourceCourseIds.includes(sourceId)) addOnce(errors, `课程引用未知源课程：${sourceId}`);
     }
-    for (const reference of [...(readStringArray(lesson.remediationPaths) ?? []), ...(readStringArray(lesson.extensionPaths) ?? [])]) {
-      if (!await pathExists(join(root, reference))) addOnce(errors, `课程引用路径不存在：${reference}`);
-    }
+    for (const reference of Array.isArray(lesson.remediationPaths) ? lesson.remediationPaths : []) await validateLearningMarkdownReference(root, reference, 'remediation', errors);
+    for (const reference of Array.isArray(lesson.extensionPaths) ? lesson.extensionPaths : []) await validateLearningMarkdownReference(root, reference, 'extension', errors);
 
     try {
       validateMarkdown(await readFile(markdownPath, 'utf8'), suffix, weekNumber, errors);
@@ -397,6 +440,7 @@ export async function validateRepositoryContent(root: string, options: Repositor
       if (!lab) continue;
       labs.push(lab);
       validateDetectionChecks(lab.detectionChecks, errors);
+      if (lab.id !== labId) addOnce(errors, `实验 ID 与引用不一致：${labId}`);
       if (lab.lessonId !== lesson.id) addOnce(errors, `实验引用错误课程：${labId}`);
       const labText = JSON.stringify(lab);
       if (!(readStringArray(lab.safety) ?? []).some((line) => /断电/.test(line))) addOnce(errors, '实验缺少断电接线安全项');
@@ -406,10 +450,11 @@ export async function validateRepositoryContent(root: string, options: Repositor
 
     const assessmentId = typeof lesson.assessmentId === 'string' ? lesson.assessmentId : '';
     const assessmentValue = await readJson(join(root, `assessments/question-banks/${assessmentId}.json`), errors, `考核 ${assessmentId}`);
-    validateAssessment(assessmentValue, errors);
+    validateAssessment(assessmentValue, errors, assessmentId);
     const assessment = asRecord(assessmentValue);
     if (assessment) {
       assessments.push(assessment);
+      if (assessment.id !== assessmentId) addOnce(errors, `考核 ID 与引用不一致：${assessmentId}`);
       if (assessment.lessonId !== lesson.id) addOnce(errors, `考核引用错误课程：${assessmentId}`);
       for (const item of Array.isArray(assessment.items) ? assessment.items : []) {
         for (const id of readStringArray(asRecord(item)?.tagIds) ?? []) {
@@ -424,9 +469,15 @@ export async function validateRepositoryContent(root: string, options: Repositor
       const gate = PracticalGateSchema.safeParse(gateValue);
       if (!gate.success) addOnce(errors, `实践考核结构无效：${gateId}`);
       else {
+        if (gate.data.id !== gateId) addOnce(errors, `实践考核 ID 不一致：${gateId}`);
         if (gate.data.phase !== week.phase) addOnce(errors, `实践考核阶段不一致：${gateId}`);
+        const phaseLessonIds = courseMap.data.weeks.filter((candidate) => candidate.phase === week.phase).flatMap((candidate) => candidate.lessonIds);
+        if (!sameSetWithMultiplicity(gate.data.lessonIds, phaseLessonIds)) addOnce(errors, `实践考核课程集合不一致：${gateId}`);
         for (const lessonId of gate.data.lessonIds) if (!knownLessonIds.has(lessonId)) addOnce(errors, `实践考核引用未知课程：${lessonId}`);
         for (const id of gate.data.requiredTagIds) if (!tagIds.has(id)) addOnce(errors, `实践考核引用不存在的知识标签：${id}`);
+        for (const item of gate.data.items) {
+          for (const id of item.tagIds) if (!tagIds.has(id)) addOnce(errors, `实践考核引用不存在的知识标签：${id}`);
+        }
       }
     }
   }

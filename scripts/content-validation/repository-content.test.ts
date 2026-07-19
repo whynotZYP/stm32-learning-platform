@@ -46,6 +46,8 @@ const HARDWARE_CHECKS = [
   { mode: 'manual', action: '手动观察并记录真实现象', expectedEvidence: '人工观察结果记录', limitation: '人工观察不能由构建替代', applicable: true, evidenceSource: 'manual', physicalHardware: true },
 ];
 const HEADINGS = ['学完后能解释', '学完后能做到', '概念模型', 'CubeMX 为什么这样配', '最小实验', '调试与寄存器观察', '故障注入', '复述检查', '学习笔记'];
+const REMEDIATION_MARKDOWN = ['目标', '解释', '微型练习', '检查问题', '通过证据', '返回课程'].map((heading) => `## ${heading}\n\n这是完整且可执行的补救学习内容。`).join('\n\n');
+const EXTENSION_MARKDOWN = ['进入条件', '为什么适合继续学习', '起步项目', '尚未掌握'].map((heading) => `## ${heading}\n\n这是完整且可执行的拓展学习内容。`).join('\n\n') + '\n\n## 权威资料\n\nhttps://www.st.com/resource\n';
 const expectedFailures = [
   '必须恰好有 24 个周清单和 24 个周正文',
   '知识标签存在循环前置关系',
@@ -66,6 +68,15 @@ async function writeJson(path: string, value: unknown) {
 
 async function readJson(path: string): Promise<any> {
   return JSON.parse(await readFile(path, 'utf8'));
+}
+
+function evidenceItems(prefix: string) {
+  return [
+    { id: `${prefix}-concept`, kind: 'concept', prompt: '解释阶段核心概念以及信号路径。', tagIds: REQUIRED_TAG_IDS, maxScore: 25, rubric: ['解释准确且完整'] },
+    { id: `${prefix}-configuration`, kind: 'configuration', prompt: '说明阶段配置和代码选择原因。', tagIds: REQUIRED_TAG_IDS, maxScore: 25, rubric: ['配置理由准确完整'] },
+    { id: `${prefix}-practical`, kind: 'practical', prompt: '完成阶段综合实践并提交证据。', tagIds: REQUIRED_TAG_IDS, maxScore: 35, rubric: ['证据完整且能复现'] },
+    { id: `${prefix}-reflection`, kind: 'reflection', prompt: '复述阶段收获并整理学习笔记。', tagIds: REQUIRED_TAG_IDS, maxScore: 15, rubric: ['反思具体且可行动'] },
+  ];
 }
 
 async function createCompleteFixture(root: string) {
@@ -119,7 +130,7 @@ async function createCompleteFixture(root: string) {
       await writeJson(join(root, `assessments/practicals/gate-${String(week.phase).padStart(2, '0')}.json`), {
         schemaVersion: 1, id: `gate-${String(week.phase).padStart(2, '0')}`, phase: week.phase, title: `阶段 ${week.phase} 实践考核`,
         lessonIds: weeks.slice((week.phase - 1) * 4, week.phase * 4).map((item) => item.lessonIds[0]), requiredTagIds: REQUIRED_TAG_IDS,
-        items: [{ id: `gate-${week.phase}-practical`, kind: 'practical', prompt: '完成阶段综合实践并提交可复现证据。', tagIds: REQUIRED_TAG_IDS, maxScore: 100, rubric: ['证据完整'] }],
+        items: evidenceItems(`gate-${week.phase}`),
       });
     }
   }
@@ -169,6 +180,29 @@ describe('validateRepositoryContent', () => {
     const root = await fixture();
     await rm(join(root, 'curriculum/weeks/w24.md'));
     expect((await validate(root)).errors).toContain(expectedFailures[0]);
+  });
+
+  it('reports a schema-valid course map with a missing selected week instead of rejecting', async () => {
+    const root = await fixture();
+    const path = join(root, 'curriculum/course-map.json');
+    const courseMap = await readJson(path);
+    courseMap.weeks[1].week = 1;
+    await writeJson(path, courseMap);
+
+    const report = await validateRepositoryContent(root, { weeks: [2], requireCompleteRepository: false });
+
+    expect(report.errors).toContain('周编号必须恰好覆盖 1–24，不能重复');
+    expect(report.errors).toContain('课程地图缺少第 2 周');
+  });
+
+  it('cannot narrow complete validation with an explicit weeks option', async () => {
+    const root = await fixture();
+    await writeFile(join(root, 'curriculum/weeks/w24.json'), '{', 'utf8');
+
+    const report = await validateRepositoryContent(root, { weeks: [1], requireCompleteRepository: true });
+
+    expect(report.errors).toContain('周清单 w24不存在或不是有效 JSON');
+    expect(report.errors).toContain('周清单结构无效：w24');
   });
 
   it('detects a cycle in the knowledge-tag prerequisites', async () => {
@@ -313,6 +347,15 @@ describe('validateRepositoryContent', () => {
     expect((await validate(root)).errors).toContain('源 API 清单缺少完整来源信息：05');
   });
 
+  it('rejects an HTTPS prefix without a hostname as provenance', async () => {
+    const root = await fixture();
+    const path = join(root, 'curriculum/source-api-inventory.json');
+    const inventory = await readJson(path);
+    inventory.records[0].sourceUrl = 'https://';
+    await writeJson(path, inventory);
+    expect((await validate(root)).errors).toContain('源 API 清单缺少完整来源信息：05');
+  });
+
   it('requires an explicit splSymbols array', async () => {
     const root = await fixture();
     const path = join(root, 'curriculum/source-api-inventory.json');
@@ -340,13 +383,146 @@ describe('validateRepositoryContent', () => {
     expect((await validate(root)).errors).toContain('不适用检测必须说明原因');
   });
 
-  it.each(['remediationPaths', 'extensionPaths'])('requires every referenced %s entry to exist', async (field) => {
+  it.each([
+    ['remediationPaths', 'curriculum/remediation/missing.md', '补救内容文件无效：curriculum/remediation/missing.md'],
+    ['extensionPaths', 'curriculum/extensions/missing.md', '拓展内容文件无效：curriculum/extensions/missing.md'],
+  ])('requires every referenced %s entry to exist', async (field, reference, expectedError) => {
     const root = await fixture();
     const path = join(root, 'curriculum/weeks/w01.json');
     const lesson = await readJson(path);
-    lesson[field] = [`curriculum/missing-${field}.md`];
+    lesson[field] = [reference];
     await writeJson(path, lesson);
-    expect((await validate(root)).errors).toContain(`课程引用路径不存在：curriculum/missing-${field}.md`);
+    expect((await validate(root)).errors).toContain(expectedError);
+  });
+
+  it('accepts referenced remediation and extension Markdown with their minimal contracts', async () => {
+    const root = await fixture();
+    const lessonPath = join(root, 'curriculum/weeks/w01.json');
+    const lesson = await readJson(lessonPath);
+    lesson.remediationPaths = ['curriculum/remediation/concept-breakdown.md'];
+    lesson.extensionPaths = ['curriculum/extensions/freertos.md'];
+    await writeJson(lessonPath, lesson);
+    await mkdir(join(root, 'curriculum/remediation'), { recursive: true });
+    await mkdir(join(root, 'curriculum/extensions'), { recursive: true });
+    await writeFile(join(root, lesson.remediationPaths[0]), REMEDIATION_MARKDOWN, 'utf8');
+    await writeFile(join(root, lesson.extensionPaths[0]), EXTENSION_MARKDOWN, 'utf8');
+
+    expect(await validate(root, [1])).toEqual({ ok: true, errors: [] });
+  });
+
+  it.each([
+    ['remediationPaths', 'curriculum/remediation/garbage.md', '补救内容 Markdown 合同无效：curriculum/remediation/garbage.md'],
+    ['extensionPaths', 'curriculum/extensions/garbage.md', '拓展内容 Markdown 合同无效：curriculum/extensions/garbage.md'],
+  ])('rejects non-contract Markdown referenced by %s', async (field, reference, expectedError) => {
+    const root = await fixture();
+    const lessonPath = join(root, 'curriculum/weeks/w01.json');
+    const lesson = await readJson(lessonPath);
+    lesson[field] = [reference];
+    await writeJson(lessonPath, lesson);
+    await mkdir(join(root, reference.replace(/\/[^/]+$/, '')), { recursive: true });
+    await writeFile(join(root, reference), 'garbage', 'utf8');
+
+    expect((await validate(root, [1])).errors).toContain(expectedError);
+  });
+
+  it('rejects a directory that masquerades as remediation Markdown', async () => {
+    const root = await fixture();
+    const reference = 'curriculum/remediation/not-a-file.md';
+    const lessonPath = join(root, 'curriculum/weeks/w01.json');
+    const lesson = await readJson(lessonPath);
+    lesson.remediationPaths = [reference];
+    await writeJson(lessonPath, lesson);
+    await mkdir(join(root, reference), { recursive: true });
+
+    expect((await validate(root, [1])).errors).toContain(`补救内容文件无效：${reference}`);
+  });
+
+  it.each([
+    ['curriculum/knowledge-tags.json', '补救内容路径无效：curriculum/knowledge-tags.json'],
+    ['C:\\outside.md', '补救内容路径无效：C:\\outside.md'],
+  ])('rejects a non-remediation repository reference %s', async (reference, expectedError) => {
+    const root = await fixture();
+    const lessonPath = join(root, 'curriculum/weeks/w01.json');
+    const lesson = await readJson(lessonPath);
+    lesson.remediationPaths = [reference];
+    await writeJson(lessonPath, lesson);
+
+    expect((await validate(root, [1])).errors).toContain(expectedError);
+  });
+
+  it('requires the gate ID and exact phase lesson set', async () => {
+    const root = await fixture();
+    const path = join(root, 'assessments/practicals/gate-01.json');
+    const gate = await readJson(path);
+    gate.id = 'gate-wrong';
+    gate.lessonIds = ['w24-lesson'];
+    await writeJson(path, gate);
+    const errors = (await validate(root, [1, 2, 3, 4])).errors;
+    expect(errors).toContain('实践考核 ID 不一致：gate-01');
+    expect(errors).toContain('实践考核课程集合不一致：gate-01');
+  });
+
+  it('rejects a one-point single-item practical gate', async () => {
+    const root = await fixture();
+    const path = join(root, 'assessments/practicals/gate-01.json');
+    const gate = await readJson(path);
+    gate.items = [{ id: 'gate-1-practical', kind: 'practical', prompt: '完成阶段综合实践并提交证据。', tagIds: REQUIRED_TAG_IDS, maxScore: 1, rubric: ['证据完整'] }];
+    await writeJson(path, gate);
+    expect((await validate(root, [1, 2, 3, 4])).errors).toContain('实践考核结构无效：gate-01');
+  });
+
+  it('rejects an unknown practical-gate item tag', async () => {
+    const root = await fixture();
+    const path = join(root, 'assessments/practicals/gate-01.json');
+    const gate = await readJson(path);
+    gate.items[0].tagIds = ['unknown.tag'];
+    await writeJson(path, gate);
+    expect((await validate(root, [1, 2, 3, 4])).errors).toContain('实践考核引用不存在的知识标签：unknown.tag');
+  });
+
+  it('rejects duplicate practical-gate item IDs', async () => {
+    const root = await fixture();
+    const path = join(root, 'assessments/practicals/gate-01.json');
+    const gate = await readJson(path);
+    gate.items[1].id = gate.items[0].id;
+    await writeJson(path, gate);
+    expect((await validate(root, [1, 2, 3, 4])).errors).toContain('实践考核结构无效：gate-01');
+  });
+
+  it('requires lesson source IDs to match that week in the course map', async () => {
+    const root = await fixture();
+    const path = join(root, 'curriculum/weeks/w01.json');
+    const lesson = await readJson(path);
+    lesson.sourceCourseIds = lesson.sourceCourseIds.slice(1);
+    await writeJson(path, lesson);
+    expect((await validate(root, [1])).errors).toContain('课程源课程与课程地图不一致：w01');
+  });
+
+  it('requires a referenced lab to declare the same ID', async () => {
+    const root = await fixture();
+    const path = join(root, 'labs/manifests/lab-w01.json');
+    const lab = await readJson(path);
+    lab.id = 'lab-wrong';
+    await writeJson(path, lab);
+    expect((await validate(root, [1])).errors).toContain('实验 ID 与引用不一致：lab-w01');
+  });
+
+  it('requires a referenced assessment to declare the same ID', async () => {
+    const root = await fixture();
+    const path = join(root, 'assessments/question-banks/assessment-w01.json');
+    const assessment = await readJson(path);
+    assessment.id = 'assessment-wrong';
+    await writeJson(path, assessment);
+    expect((await validate(root, [1])).errors).toContain('考核 ID 与引用不一致：assessment-w01');
+  });
+
+  it('rejects duplicate assessment item IDs', async () => {
+    const root = await fixture();
+    const path = join(root, 'assessments/question-banks/assessment-w01.json');
+    const assessment = await readJson(path);
+    assessment.items[1].id = assessment.items[0].id;
+    await writeJson(path, assessment);
+    expect((await validate(root, [1])).errors).toContain('考核题目 ID 必须唯一：assessment-w01');
   });
 
   it('requires device and manual physical checks for every core hardware tag', async () => {
