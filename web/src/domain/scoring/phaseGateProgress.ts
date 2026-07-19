@@ -30,7 +30,10 @@ function scorePractical(progress: LessonProgress | undefined) {
 export function derivePhaseGateProgress({
   phaseId, lessonIds, prerequisiteTagIds, state,
 }: { phaseId: number; lessonIds: string[]; prerequisiteTagIds: string[]; state: LearnerState }): PhaseGateProgress {
-  const prerequisiteMastery = prerequisiteTagIds.map((tagId) => calculateTagMastery(tagId, state.evidence));
+  const acceptedPrerequisiteEvidence = state.evidence.filter((record) => (
+    record.status === 'auto-pass' || record.status === 'manual-confirmed'
+  ));
+  const prerequisiteMastery = prerequisiteTagIds.map((tagId) => calculateTagMastery(tagId, acceptedPrerequisiteEvidence));
   const gate = evaluatePhaseGate({
     phaseId,
     lessonScores: lessonIds.map((lessonId) => scoreLesson(state.lessonProgress[lessonId])),

@@ -49,4 +49,25 @@ describe('derivePhaseGateProgress', () => {
     expect(result.remediation.every((item) => prerequisites.includes(item.tagId))).toBe(true);
     expect(result.remediation.some((item) => item.tagId === 'spi.protocol')).toBe(false);
   });
+
+  it('rejects failed or pending prerequisite evidence but keeps accepted evidence', () => {
+    const fullProgress = Object.fromEntries(lessonIds.map((lessonId) => [lessonId, {
+      ...complete({ concept: 100, configuration: 100, practical: 100, reflection: 100 }), lessonId,
+    }]));
+    const disallowed: EvidenceRecord[] = prerequisites.flatMap((tagId) => (['failed', 'pending'] as const).map((status) => ({
+      id: `${status}-${tagId}`, learnerId: 'local', lessonId: 'entry-diagnostic', tagIds: [tagId], kind: 'concept', status,
+      score: 100, source: 'assessment', createdAt: '2026-07-19T00:00:00.000Z', details: {},
+    })));
+    const rejected = derive(fullProgress, disallowed);
+    expect(rejected.prerequisiteMastery.every((item) => item.score === 0)).toBe(true);
+    expect(rejected.gate.passed).toBe(false);
+    expect(rejected.remediation).toHaveLength(3);
+    expect(rejected.remediation.every((item) => prerequisites.includes(item.tagId))).toBe(true);
+
+    const accepted: EvidenceRecord[] = prerequisites.map((tagId) => ({
+      id: `accepted-${tagId}`, learnerId: 'local', lessonId: 'entry-diagnostic', tagIds: [tagId], kind: 'concept', status: 'auto-pass',
+      score: 100, source: 'assessment', createdAt: '2026-07-19T00:00:00.000Z', details: {},
+    }));
+    expect(derive(fullProgress, accepted).gate.passed).toBe(true);
+  });
 });
