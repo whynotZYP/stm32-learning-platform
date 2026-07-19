@@ -175,7 +175,7 @@ describe('ProgressProvider', () => {
       snapshot: async () => createDefaultState(), replace: async () => undefined,
     };
     const { progress } = await renderProgress(repository);
-    let evidenceOperation!: Promise<void>; let noteOperation!: Promise<void>;
+    let evidenceOperation!: Promise<void>; let noteOperation!: Promise<boolean>;
     act(() => { evidenceOperation = progress().recordEvidence(evidence); noteOperation = progress().saveNote('w04', 'GPIO'); });
     await waitFor(() => expect(saved).toHaveLength(1));
     expect(saved[0].evidence).toHaveLength(1);
@@ -393,5 +393,22 @@ describe('ProgressProvider', () => {
     expect(progress().error).toContain('恢复结果暂时无法确认');
     await act(async () => { await progress().saveNote('after', 'keeps conservative baseline'); });
     expect(saved[0]).toMatchObject({ currentWeek: 13, notes: { imported: 'keep', after: 'keeps conservative baseline' } });
+  });
+
+  it('reports whether a note save actually reached local storage', async () => {
+    let attempts = 0;
+    const repository: ProgressRepository = {
+      load: async () => createDefaultState(),
+      save: async () => { attempts += 1; if (attempts === 1) throw new Error('disk full'); },
+      snapshot: async () => createDefaultState(), replace: async () => undefined,
+    };
+    const { progress } = await renderProgress(repository);
+    let first = true;
+    let second = false;
+    await act(async () => { first = await progress().saveNote('w01-foundations', 'first'); });
+    await act(async () => { second = await progress().saveNote('w01-foundations', 'second'); });
+    expect(first).toBe(false);
+    expect(second).toBe(true);
+    expect(progress().state.notes).toEqual({ 'w01-foundations': 'second' });
   });
 });

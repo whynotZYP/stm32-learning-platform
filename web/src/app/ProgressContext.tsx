@@ -9,7 +9,7 @@ const clone = <T,>(value: T): T => structuredClone(value);
 export interface ProgressActions {
   recordEvidence(record: EvidenceRecord): Promise<void>;
   recordEvidenceBatch(records: EvidenceRecord[]): Promise<boolean>;
-  saveNote(lessonId: string, markdown: string): Promise<void>;
+  saveNote(lessonId: string, markdown: string): Promise<boolean>;
   setCurrentWeek(week: number): Promise<void>;
   replaceState(state: LearnerState): Promise<void>;
   restoreBackup(json: string): Promise<RestoreBackupResult>;
@@ -102,7 +102,10 @@ export function ProgressProvider({ repository, children }: { repository: Progres
     }, false);
   }, [enqueue, save, showError]);
   const recordEvidence = useCallback(async (record: EvidenceRecord) => { await recordEvidenceBatch([record]); }, [recordEvidenceBatch]);
-  const saveNote = useCallback((lessonId: string, markdown: string) => enqueue(async () => { await save({ ...clone(stateRef.current!), notes: { ...stateRef.current!.notes, [lessonId]: markdown }, updatedAt: new Date().toISOString() }); }, undefined), [enqueue, save]);
+  const saveNote = useCallback((lessonId: string, markdown: string) => enqueue(
+    () => save({ ...clone(stateRef.current!), notes: { ...stateRef.current!.notes, [lessonId]: markdown }, updatedAt: new Date().toISOString() }),
+    false,
+  ), [enqueue, save]);
   const setCurrentWeek = useCallback((week: number) => enqueue(async () => {
     if (!Number.isInteger(week) || week < 1 || week > 24) { showError('周编号必须在 1 到 24 之间。'); return; }
     await save({ ...clone(stateRef.current!), currentWeek: week, updatedAt: new Date().toISOString() });

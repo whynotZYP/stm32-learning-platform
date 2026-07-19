@@ -9,6 +9,8 @@
     "typecheck": "tsc -p web/tsconfig.json --noEmit && tsc -p tsconfig.scripts.json --noEmit",
     "test": "vitest run --config web/vitest.config.ts",
     "test:watch": "vitest --config web/vitest.config.ts",
+    "test:e2e": "playwright test --config web/playwright.config.ts",
+    "preview": "vite preview --config web/vite.config.ts",
     "validate:content": "tsx scripts/content-validation/validate-content.ts"
   },
   "dependencies": {
@@ -19,6 +21,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^26.1.1",

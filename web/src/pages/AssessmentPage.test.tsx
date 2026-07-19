@@ -59,4 +59,17 @@ describe('AssessmentPage', () => {
     render(<ProgressProvider repository={repository()}><RouterProvider router={router} /></ProgressProvider>);
     expect(await screen.findByRole('heading', { name: '没有找到这份测验' })).toBeInTheDocument();
   });
+
+  it('lists the exact saved evidence with its source and status', async () => {
+    const store = repository();
+    const router = createMemoryRouter([{ path: '/assessment/:assessmentId', element: <AssessmentPage /> }], { initialEntries: ['/assessment/entry-diagnostic'] });
+    render(<ProgressProvider repository={store}><RouterProvider router={router} /></ProgressProvider>);
+    await screen.findAllByRole('group');
+    for (const input of screen.getAllByLabelText('你的回答')) fireEvent.change(input, { target: { value: '已回答' } });
+    fireEvent.click(screen.getByRole('button', { name: '提交诊断' }));
+    const saved = await screen.findByRole('status');
+    expect(saved).toHaveTextContent('来源：测验');
+    expect(saved).toHaveTextContent('状态：人工确认');
+    expect(screen.getByRole('list', { name: '本次保存的证据' })).toHaveTextContent('assessment-entry-diagnostic');
+  });
 });

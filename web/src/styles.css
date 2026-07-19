@@ -12,6 +12,7 @@
 }
 
 * { box-sizing: border-box; }
+html, body { max-width: 100%; overflow-x: hidden; }
 body { margin: 0; }
 a { color: var(--accent); }
 a:focus-visible, button:focus-visible { outline: 3px solid var(--warning); outline-offset: 3px; }
@@ -28,6 +29,9 @@ nav { display: flex; flex-wrap: wrap; gap: 1rem; }
 .status--mastered, .status--success { color: var(--success); }
 .status--review { color: var(--warning); }
 .status--remediate, .status--relearn, .status--danger { color: var(--danger); }
+fieldset, input, textarea, select, pre { max-width: 100%; min-width: 0; }
+textarea { display: block; min-height: 8rem; width: 100%; }
+input, select { max-width: 100%; }
 
 @media (max-width: 48rem) {
   .site-header { align-items: flex-start; flex-direction: column; }
