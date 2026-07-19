@@ -207,7 +207,7 @@ void EXTI0_IRQHandler(void)
   /* USER CODE BEGIN EXTI0_IRQn 0 */
 
   /* USER CODE END EXTI0_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(BUTTON_Pin);
+  HAL_GPIO_EXTI_IRQHandler(IR_PULSE_Pin);
   /* USER CODE BEGIN EXTI0_IRQn 1 */
 
   /* USER CODE END EXTI0_IRQn 1 */
@@ -230,7 +230,7 @@ void EXTI1_IRQHandler(void)
 /* USER CODE BEGIN 1 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  if (GPIO_Pin == BUTTON_Pin) App_OnIrEvent();
+  if (GPIO_Pin == IR_PULSE_Pin) App_OnIrEvent();
   if (GPIO_Pin == ENCODER_Pin) App_OnEncoderEvent(HAL_GPIO_ReadPin(ENCODER_B_GPIO_Port, ENCODER_B_Pin));
 }
 

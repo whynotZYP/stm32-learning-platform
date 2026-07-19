@@ -59,11 +59,17 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : BUTTON_Pin ENCODER_Pin */
-  GPIO_InitStruct.Pin = BUTTON_Pin|ENCODER_Pin;
+  /*Configure GPIO pin : IR_PULSE_Pin */
+  GPIO_InitStruct.Pin = IR_PULSE_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(IR_PULSE_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : ENCODER_Pin */
+  GPIO_InitStruct.Pin = ENCODER_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(ENCODER_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : ENCODER_B_Pin */
   GPIO_InitStruct.Pin = ENCODER_B_Pin;

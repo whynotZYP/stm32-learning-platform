@@ -20,7 +20,6 @@
 #include "main.h"
 #include "tim.h"
 #include "gpio.h"
-#include "tim.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -56,7 +55,6 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-/* CubeMX timer contract: MX_TIM2_Init(); htim2.Init.Prescaler = 71; htim2.Init.Period = 999; */
 /* TIM2 uses 72 MHz timer clock for 1 ms; TIM3 counts PA6 external pulses. */
 
 /* USER CODE END 0 */
@@ -90,8 +88,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_TIM2_Init();
-  MX_TIM3_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
