@@ -1,0 +1,9 @@
+{
+  "schemaVersion":1,"id":"gate-03","phase":3,"title":"阶段三：定时器输出、测量、执行器安全与 ADC","lessonIds":["w09-pwm-basics","w10-pwm-actuators","w11-tim-measurement","w12-adc"],"requiredTagIds":["tim.pwm","tim.capture","tim.encoder","adc.sampling"],
+  "items":[
+    {"id":"g3-c","kind":"concept","prompt":"在纸上从 72 MHz 推导 PSC、ARR、CCR、频率和占空比，并解释输入捕获时间戳与 ADC 量化。","tagIds":["tim.pwm","tim.capture","adc.sampling"],"maxScore":25,"rubric":["定时器推导含 +1","ADC 模型正确"]},
+    {"id":"g3-k","kind":"configuration","prompt":"说明 PWM 到捕获回环的定时器和通道选择、舵机电机独立供电与共地安全，以及 ADC 模拟 GPIO、采样时间和校准配置。","tagIds":["tim.pwm","tim.capture","adc.sampling"],"maxScore":25,"rubric":["通道无冲突","独立供电与共地明确","ADC 配置可解释"]},
+    {"id":"g3-p","kind":"practical","prompt":"完成 PWM 到 capture 回环并证明频率和占空比误差均不超过 2%；展示执行器越界拒绝；诊断并修复一个 ADC 模拟模式或采样时间故障。","tagIds":["tim.pwm","tim.capture","adc.sampling"],"maxScore":35,"rubric":["PWM 捕获误差不超过 2%","执行器边界保护","ADC 故障诊断有证据","不伪造物理结果"]},
+    {"id":"g3-r","kind":"reflection","prompt":"提交 Markdown 记录，分开列出自动构建、设备数值、人工运动/电流/电压证据和待实机验证项。","tagIds":["debug.observation"],"maxScore":15,"rubric":["证据类型清楚","安全解释完整"]}
+  ]
+}

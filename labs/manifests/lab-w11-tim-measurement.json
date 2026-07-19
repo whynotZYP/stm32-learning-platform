@@ -1,0 +1,10 @@
+{
+  "schemaVersion":1,"id":"lab-w11-tim-measurement","lessonId":"w11-tim-measurement","title":"PWM 回环测量与编码器测速",
+  "hardware":["STM32F103C8T6","ST-LINK","两相增量编码器","杜邦线"],
+  "wiringChecklist":["断电后将 PA0 (TIM2_CH1 输出) 接到 PA6 (TIM3_CH1 输入)，保持 3.3 V 且共地。","断电后将编码器 A/B 分别接 PB6/PB7，编码器电源使用 3.3 V 并共地。"],
+  "safety":["所有回环和编码器接线必须在断电状态完成，禁止 5 V 推挽信号直连 GPIO。","若使用外部信号源，先确认幅度为 3.3 V 并与开发板共地。"],
+  "expectedObservations":["设备测得 PWM 频率约 1 kHz、占空比约 35%，误差均不超过 2%。","正反转编码器时速度值符号相反，停止时逐步回到零。"],
+  "faultTasks":["把 CH2 极性改成上升沿或临时忽略溢出，观察占空比或低频测量错误，再恢复下降沿和溢出扩展。"],
+  "detectionChecks":[{"mode":"automatic","action":"构建并检查捕获与编码器计算边界","expectedEvidence":"ELF 和公式检查","limitation":"不能证明回环接线","applicable":true,"evidenceSource":"simulator","physicalHardware":false},{"mode":"semi-automatic","action":"设备回报频率和占空比误差","expectedEvidence":"相对输出设定误差不超过 2%","limitation":"需要真实 PA0 到 PA6 回环","applicable":true,"evidenceSource":"device","physicalHardware":true},{"mode":"manual","action":"转动编码器并确认方向速度","expectedEvidence":"接线照片与正负速度记录","limitation":"方向由人工确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}],
+  "firmwareProject":"firmware/lessons/w11-tim-measurement"
+}

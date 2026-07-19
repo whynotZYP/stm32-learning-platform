@@ -1,0 +1,10 @@
+{
+  "schemaVersion":1,"id":"lab-w12-adc","lessonId":"w12-adc","title":"三通道 ADC 原始值与毫伏值",
+  "hardware":["STM32F103C8T6","ST-LINK","10 kΩ 电位器","两个 0–3.3 V 模拟传感器","万用表"],
+  "wiringChecklist":["断电后把电位器滑动端接 PA0、两个传感器输出接 PA1/PA2，电源使用 3.3 V 并共地。","上电前用万用表确认三路输入均在 0–3.3 V，避免探针短接。"],
+  "safety":["任何 ADC 接线变更前必须断电，严禁负电压或超过 3.3 V 的输入。","传感器、万用表和开发板必须共地，测量时避免表笔短路。"],
+  "expectedObservations":["启动后校准一次，按 IN0、IN1、IN2 顺序提供 raw 和 mV。","转动电位器或改变传感器输入时对应通道变化且范围保持 0–4095、0–3300 mV。"],
+  "faultTasks":["把一个 GPIO 改为数字输入或把采样时间缩短，记录不稳定/偏差后恢复模拟模式和 239.5 周期采样。"],
+  "detectionChecks":[{"mode":"automatic","action":"构建并检查一次校准和换算边界","expectedEvidence":"ELF 与静态配置结果","limitation":"不能证明参考电压精度","applicable":true,"evidenceSource":"simulator","physicalHardware":false},{"mode":"semi-automatic","action":"设备读取三路 raw 与 mV 变化","expectedEvidence":"通道顺序和范围记录","limitation":"范围变化不等于电压准确","applicable":true,"evidenceSource":"device","physicalHardware":true},{"mode":"manual","action":"用万用表逐路比对毫伏值","expectedEvidence":"表值、ADC 值与误差记录","limitation":"准确度必须人工测量","applicable":true,"evidenceSource":"manual","physicalHardware":true}],
+  "firmwareProject":"firmware/lessons/w12-adc"
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "w11-tim-measurement",
+  "week": 11,
+  "title": "输入捕获、PWMI 与编码器测速",
+  "estimatedMinutes": 480,
+  "sourceCourseIds": ["17", "18", "19", "20"],
+  "prerequisiteTagIds": ["tim.pwm", "tim.timebase", "gpio.input-bias"],
+  "targetTagIds": ["tim.capture", "tim.encoder"],
+  "objectives": ["用边沿时间戳和溢出次数计算输入频率", "用 PWMI 从模式复位同时测量周期与高电平时间", "用编码器计数差计算有符号速度并与 1 kHz 回环比对"],
+  "conceptPath": "curriculum/weeks/w11.md",
+  "labIds": ["lab-w11-tim-measurement"],
+  "assessmentId": "assessment-w11",
+  "safety": ["连接 PA0 到 PA6 的 PWM 回环及编码器线前必须断电，所有信号只允许 3.3 V 并共地。", "编码器若由外部电源供电，先核对输出电平；不得把 5 V 推挽信号直接接入 STM32。"],
+  "detectionChecks": [
+    {"mode":"automatic","action":"构建并检查捕获公式、溢出扩展与编码器差分逻辑","expectedEvidence":"ELF 与静态边界记录","limitation":"不能证明真实连线或信号质量","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备回读捕获频率和占空比并与输出设定比较","expectedEvidence":"频率与占空比误差不超过 2% 的设备数据","limitation":"需要 PA0 到 PA6 的真实回环","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"转动编码器并核对方向和速度正负变化","expectedEvidence":"接线照片、计数与速度记录","limitation":"机械方向需要人工确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

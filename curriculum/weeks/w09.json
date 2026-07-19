@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "w09-pwm-basics",
+  "week": 9,
+  "title": "输出比较与 1 kHz PWM",
+  "estimatedMinutes": 450,
+  "sourceCourseIds": ["15"],
+  "prerequisiteTagIds": ["tim.timebase", "gpio.output-mode"],
+  "targetTagIds": ["tim.pwm"],
+  "objectives": ["从定时器时钟推导 1 kHz PWM 的 PSC 与 ARR", "解释输出比较通道、极性和预装载如何决定波形", "用非阻塞占空比步进实现 LED 呼吸并保留测量证据"],
+  "conceptPath": "curriculum/weeks/w09.md",
+  "labIds": ["lab-w09-pwm"],
+  "assessmentId": "assessment-w09",
+  "safety": ["改接 PA0 PWM 与 LED 电阻前必须断电，只允许 3.3 V 逻辑并与开发板共地。", "LED 必须串联限流电阻；GPIO 不得直接驱动电机、舵机或其他大负载。"],
+  "detectionChecks": [
+    {"mode":"automatic","action":"构建固件并静态检查 1 kHz 参数、预装载和占空比边界","expectedEvidence":"ELF 与配置检查记录","limitation":"构建不能证明引脚上确有 1 kHz 波形","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"用设备捕获或调试器读取 TIM2 寄存器和比较值","expectedEvidence":"PSC、ARR、CCR1 与捕获数值","limitation":"需要连接真实开发板和后续捕获回路","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"观察外接 LED 亮度随占空比平滑变化","expectedEvidence":"接线照片和呼吸现象记录","limitation":"亮度是人工观察，不能由编译结果代替","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

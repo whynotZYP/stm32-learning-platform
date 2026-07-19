@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "w12-adc",
+  "week": 12,
+  "title": "ADC 原理与三通道采样",
+  "estimatedMinutes": 480,
+  "sourceCourseIds": ["21", "22"],
+  "prerequisiteTagIds": ["foundation.electricity", "tim.timebase"],
+  "targetTagIds": ["adc.sampling"],
+  "objectives": ["解释逐次逼近、参考电压、量化和对齐", "配置三个模拟 GPIO、长采样时间和固定通道顺序", "启动后只校准一次并同时保留 raw 与 mV 读数"],
+  "conceptPath": "curriculum/weeks/w12.md",
+  "labIds": ["lab-w12-adc"],
+  "assessmentId": "assessment-w12",
+  "safety": ["改接电位器和传感器前必须断电，输入范围保持 0 至 3.3 V，所有模块必须共地。", "禁止向 ADC 引脚输入负电压或超过 3.3 V；用万用表测量时避免表笔短路相邻引脚。"],
+  "detectionChecks": [
+    {"mode":"automatic","action":"构建并检查一次校准、三通道顺序与 raw 转 mV 公式","expectedEvidence":"ELF 和配置检查记录","limitation":"不能证明参考电压或传感器实际精度","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备连续读取三路 raw 与 mV 并检查范围和变化","expectedEvidence":"三个通道的设备读数随输入变化","limitation":"范围变化不能替代万用表精度比对","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"用万用表逐路比对 ADC 毫伏值并检查接线","expectedEvidence":"表读数、设备 mV 和误差记录","limitation":"电压准确度必须由真实仪表确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

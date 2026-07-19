@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "w10-pwm-actuators",
+  "week": 10,
+  "title": "PWM 驱动舵机与直流电机",
+  "estimatedMinutes": 480,
+  "sourceCourseIds": ["16"],
+  "prerequisiteTagIds": ["tim.pwm", "foundation.electricity"],
+  "targetTagIds": ["tim.pwm"],
+  "objectives": ["把舵机角度转换成 500 至 2500 us 脉宽", "用 TB6612 的方向、PWM 和 STBY 输入控制电机", "在写寄存器前拒绝越界命令并解释独立供电和共地"],
+  "conceptPath": "curriculum/weeks/w10.md",
+  "labIds": ["lab-w10-actuators"],
+  "assessmentId": "assessment-w10",
+  "safety": ["搭接舵机、TB6612 和电机前必须断电，逻辑侧只接 3.3 V，并先确认所有电源共地。", "舵机与电机属于大电流和感性负载，必须使用独立供电，电机只能经 TB6612 驱动，禁止 GPIO 直接带载。"],
+  "detectionChecks": [
+    {"mode":"automatic","action":"构建并静态检查舵机与电机命令的拒绝边界","expectedEvidence":"ELF 和边界检查结果，不宣称发生运动","limitation":"自动检查不能证明舵机转动、电机声音或实际电流","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"读取比较寄存器但不把寄存器值当成机械运动证据","expectedEvidence":"该方式不用于本周物理通过判定","limitation":"寄存器正确仍不能证明负载接线和机械运动","applicable":false,"reason":"运动、声音和电流都必须在现场人工确认","evidenceSource":"device","physicalHardware":false},
+    {"mode":"manual","action":"人工确认舵机角度、电机方向声音与供电电流","expectedEvidence":"独立供电和共地照片、动作视频及电流记录","limitation":"必须在安全接线的真实硬件上完成","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

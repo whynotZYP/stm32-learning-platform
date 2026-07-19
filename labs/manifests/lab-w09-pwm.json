@@ -1,0 +1,10 @@
+{
+  "schemaVersion":1,"id":"lab-w09-pwm","lessonId":"w09-pwm-basics","title":"TIM2 1 kHz PWM 与 LED 呼吸",
+  "hardware":["STM32F103C8T6","ST-LINK","LED","1 kΩ 限流电阻"],
+  "wiringChecklist":["断电后将 PA0 (TIM2_CH1) 经 1 kΩ 电阻串联 LED 到 GND，确认极性后再上电。","只使用 3.3 V 逻辑并共地；示波器或逻辑分析仪探头地线也接系统地。"],
+  "safety":["任何改线前必须断电，LED 必须串联限流电阻。","GPIO 不直接驱动电机或舵机等大负载；如另接此类负载，必须独立供电并与开发板共地。"],
+  "expectedObservations":["TIM2 的 PSC=71、ARR=999，PA0 输出 1 kHz PWM。","CCR1 每 100 ms 以 100 计数步进，LED 亮度往返变化。"],
+  "faultTasks":["把 PA0 错配为普通 GPIO 或关闭比较预装载，观察波形停止或更新毛刺后恢复复用通道与 preload。"],
+  "detectionChecks":[{"mode":"automatic","action":"构建并检查定时器参数与占空比边界","expectedEvidence":"ELF 和静态配置结果","limitation":"不能证明物理波形","applicable":true,"evidenceSource":"simulator","physicalHardware":false},{"mode":"semi-automatic","action":"设备捕获 PWM 频率与比较值","expectedEvidence":"1 kHz 附近频率和 CCR1 阶梯","limitation":"需要真实回环或探头","applicable":true,"evidenceSource":"device","physicalHardware":true},{"mode":"manual","action":"观察 LED 呼吸并记录接线","expectedEvidence":"照片和亮度变化记录","limitation":"亮度只能人工判断","applicable":true,"evidenceSource":"manual","physicalHardware":true}],
+  "firmwareProject":"firmware/lessons/w09-pwm"
+}
