@@ -30,41 +30,80 @@ const REQUIRED_TOPICS = [
   'flash.persistence',
 ];
 
+interface ReadableCourseMap {
+  sourceCourseIds?: string[];
+  requiredTagIds?: string[];
+  weekNumbers?: number[];
+  mappedSourceIds?: string[];
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function readStringArray(value: unknown): string[] | undefined {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string') ? value : undefined;
+}
+
+function readCourseMap(input: unknown): ReadableCourseMap {
+  const map = asRecord(input);
+  if (!map) return {};
+
+  const weeks = Array.isArray(map.weeks) ? map.weeks.map(asRecord) : undefined;
+  const weekNumbers = weeks?.every((week) => typeof week?.week === 'number')
+    ? weeks.map((week) => week!.week as number)
+    : undefined;
+  const sourceLists = weeks?.map((week) => readStringArray(week?.sourceCourseIds));
+  const mappedSourceIds = sourceLists?.every((sources) => sources !== undefined)
+    ? sourceLists.flat()
+    : undefined;
+
+  return {
+    sourceCourseIds: readStringArray(map.sourceCourseIds),
+    requiredTagIds: readStringArray(map.requiredTagIds),
+    weekNumbers,
+    mappedSourceIds,
+  };
+}
+
 export function validateCourseMap(input: unknown): ValidationReport {
   const parsed = CourseMapSchema.safeParse(input);
-  if (!parsed.success) {
-    return {
-      ok: false,
-      errors: [
-        '课程地图结构无效',
-        ...parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`),
-      ],
-    };
-  }
-
-  const errors: string[] = [];
-  const data = parsed.data;
-  const weeks = [...data.weeks.map((week) => week.week)].sort((a, b) => a - b);
+  const errors = parsed.success
+    ? []
+    : [
+      '课程地图结构无效',
+      ...parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`),
+    ];
+  const data = readCourseMap(parsed.success ? parsed.data : input);
   const expectedWeeks = Array.from({ length: 24 }, (_, index) => index + 1);
-  if (weeks.join(',') !== expectedWeeks.join(',')) {
+
+  if (data.weekNumbers !== undefined && [...data.weekNumbers].sort((a, b) => a - b).join(',') !== expectedWeeks.join(',')) {
     errors.push('周编号必须恰好覆盖 1–24，不能重复');
   }
 
-  const actualSources = [...new Set(data.sourceCourseIds)].sort();
   const expectedSources = [...EXPECTED_SOURCE_IDS].sort();
-  if (actualSources.join(',') !== expectedSources.join(',')) {
+  if (data.sourceCourseIds !== undefined && [...data.sourceCourseIds].sort().join(',') !== expectedSources.join(',')) {
     errors.push('源课程必须完整覆盖 05–49，并包含 06-1/06-2，共 46 份');
   }
 
-  const mappedSources = new Set(data.weeks.flatMap((week) => week.sourceCourseIds));
-  const unmapped = EXPECTED_SOURCE_IDS.filter((id) => !mappedSources.has(id));
-  if (unmapped.length) {
-    errors.push(`未映射源课程：${unmapped.join(', ')}`);
+  if (data.mappedSourceIds !== undefined) {
+    const mappedSources = new Set(data.mappedSourceIds);
+    const unknownMapped = [...new Set(data.mappedSourceIds.filter((id) => !EXPECTED_SOURCE_IDS.includes(id)))].sort();
+    if (unknownMapped.length) {
+      errors.push(`周映射包含未知源课程：${unknownMapped.join(', ')}`);
+    }
+
+    const unmapped = EXPECTED_SOURCE_IDS.filter((id) => !mappedSources.has(id));
+    if (unmapped.length) {
+      errors.push(`未映射源课程：${unmapped.join(', ')}`);
+    }
   }
 
-  const missingTopics = REQUIRED_TOPICS.filter((topic) => !data.requiredTagIds.includes(topic));
-  if (missingTopics.length) {
-    errors.push(`缺少核心主题：${missingTopics.join(', ')}`);
+  const expectedTopics = [...REQUIRED_TOPICS].sort();
+  if (data.requiredTagIds !== undefined && [...data.requiredTagIds].sort().join(',') !== expectedTopics.join(',')) {
+    errors.push('核心主题必须与规定主题精确相等，不能缺少、额外或重复');
   }
 
   return { ok: errors.length === 0, errors };

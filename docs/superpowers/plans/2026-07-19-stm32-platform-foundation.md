@@ -514,6 +514,19 @@ git commit -m "feat: define course content contracts"
 - Consumes: `CourseMapSchema` from Task 2.
 - Produces: `validateCourseMap(input: unknown): ValidationReport` and CLI exit code 0/1.
 
+**已确认的错误报告行为：** `CourseMapSchema` 仍是唯一结构合同。结构校验失败时，验证器必须保留全部 Zod issues，且不应早退；它还要只从可安全读取的数组、字符串和数字字段继续报告可判断的周编号、源课程和主题问题。字段形状无法安全读取时跳过对应语义检查，绝不抛异常或臆测缺失内容。
+
+结构错误处理示例（替代下方旧示例中的早返回分支）：
+
+```ts
+const parsed = CourseMapSchema.safeParse(input);
+const errors = parsed.success
+  ? []
+  : ['课程地图结构无效', ...parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`)];
+const readable = readCourseMap(parsed.success ? parsed.data : input);
+// 使用 readable 中已确认可读取的字段继续收集语义错误。
+```
+
 - [ ] **Step 1: Write failing validator tests**
 
 Create `scripts/content-validation/validate-content.test.ts`:
@@ -642,7 +655,7 @@ npm test -- --run scripts/content-validation/validate-content.test.ts
 npm run validate:content
 ```
 
-Expected: two tests pass; CLI prints `内容地图验证通过：24 周，46 份源课程，13 个核心主题。`.
+Expected: validator tests cover schema-valid and schema-invalid mixed inputs; schema-invalid reports retain `课程地图结构无效` and all可安全判断的语义错误。CLI prints `内容地图验证通过：24 周，46 份源课程，13 个核心主题。`.
 
 - [ ] **Step 6: Commit the map and validator**
 
