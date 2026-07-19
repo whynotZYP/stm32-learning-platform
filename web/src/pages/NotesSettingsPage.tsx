@@ -4,7 +4,7 @@ import { BackupSchema, exportBackup } from '../domain/backup/backup';
 import { loadCourseMap } from '../domain/content/loadCourseMap';
 import { toMarkdownNote } from '../domain/notes/toMarkdown';
 
-function download(content: string, filename: string, type: string) {
+export function download(content: string, filename: string, type: string) {
   const url = URL.createObjectURL(new Blob([content], { type }));
   try {
     const anchor = document.createElement('a');
@@ -22,10 +22,13 @@ export function NotesSettingsPage() {
   const [notice, setNotice] = useState<string>();
   const [error, setError] = useState<string>();
   const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   if (loading) return <section className="page"><h1>笔记与备份</h1><p>正在读取本机学习进度。</p></section>;
-  if (progressError) return <section className="page"><h1>笔记与备份</h1><p role="alert" className="status status--danger">{progressError}</p></section>;
+  if (progressError === '暂时无法读取本机学习进度，请刷新页面后重试。') return <section className="page"><h1>笔记与备份</h1><p role="alert" className="status status--danger">{progressError}</p></section>;
 
   const week = loadCourseMap().weeks[state.currentWeek - 1];
   const lessonId = week.lessonIds[0] ?? `week-${week.week}`;
@@ -79,7 +82,7 @@ export function NotesSettingsPage() {
     <section aria-label="备份恢复区域"><h2>恢复备份</h2><label>导入备份<input type="file" accept="application/json,.json" onChange={(event) => { void chooseFile(event); }} /></label>
       {candidate && <p><button type="button" onClick={() => { void restoreSelected(); }}>恢复已选备份</button></p>}
     </section>
-    {error && <p role="alert" className="status status--danger">{error}</p>}
+    {(error ?? progressError) && <p role="alert" className="status status--danger">{error ?? progressError}</p>}
     {notice && <p role="status" className="status status--success">{notice}</p>}
   </section>;
 }

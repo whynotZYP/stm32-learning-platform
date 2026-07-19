@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ProgressProvider } from '../app/ProgressContext';
@@ -5,7 +6,7 @@ import { exportBackup } from '../domain/backup/backup';
 import { createDefaultState } from '../domain/progress/defaultState';
 import type { ProgressRepository } from '../domain/progress/repository';
 import type { LearnerState } from '../domain/progress/types';
-import { NotesSettingsPage } from './NotesSettingsPage';
+import { download, NotesSettingsPage } from './NotesSettingsPage';
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const clone = <T,>(value: T): T => structuredClone(value);
@@ -23,8 +24,9 @@ function createRepository(initial = createDefaultState('2026-07-19T00:00:00.000Z
   return repository;
 }
 
-function renderPage(repository = createRepository()) {
-  return { repository, ...render(<ProgressProvider repository={repository}><NotesSettingsPage /></ProgressProvider>) };
+function renderPage(repository: ProgressRepository = createRepository(), strict = false) {
+  const page = <ProgressProvider repository={repository}><NotesSettingsPage /></ProgressProvider>;
+  return { repository, ...render(strict ? <StrictMode>{page}</StrictMode> : page) };
 }
 
 describe('NotesSettingsPage', () => {
@@ -43,9 +45,19 @@ describe('NotesSettingsPage', () => {
     expect(revoke).toHaveBeenCalledTimes(2);
   });
 
+  it('revokes its temporary URL even when the browser click throws', () => {
+    const create = vi.fn(() => 'blob:broken-download');
+    const revoke = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: create });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revoke });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => { throw new Error('blocked'); });
+    expect(() => download('内容', 'note.md', 'text/markdown;charset=utf-8')).toThrow('blocked');
+    expect(revoke).toHaveBeenCalledWith('blob:broken-download');
+  });
+
   it('validates the selected file, does nothing when recovery is cancelled, and immediately publishes a restored state', async () => {
     const repository = createRepository();
-    renderPage(repository);
+    renderPage(repository, true);
     const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 7 };
     const file = new File([exportBackup(incoming, '2026-07-19T02:00:00.000Z')], 'progress.json', { type: 'application/json' });
     const input = await screen.findByLabelText('导入备份');
@@ -70,5 +82,29 @@ describe('NotesSettingsPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('备份文件无法读取或格式不正确，请选择本平台导出的备份文件。');
     expect(repository.calls).not.toContain('snapshot');
     expect(repository.active().currentWeek).toBe(1);
+  });
+
+  it('keeps the validated candidate available for retry after a storage error', async () => {
+    let active = createDefaultState('2026-07-19T00:00:00.000Z');
+    let replaces = 0;
+    const repository: ProgressRepository = {
+      async load() { return clone(active); },
+      async save(next) { active = clone(next); },
+      async snapshot() { return clone(active); },
+      async replace(next) { replaces += 1; if (replaces === 1) throw new Error('storage unavailable'); active = clone(next); },
+    };
+    renderPage(repository, true);
+    const incoming = { ...createDefaultState('2026-07-19T01:00:00.000Z'), currentWeek: 9 };
+    const file = new File([exportBackup(incoming, '2026-07-19T02:00:00.000Z')], 'progress.json', { type: 'application/json' });
+    const input = await screen.findByLabelText('导入备份');
+    await act(async () => { fireEvent.change(input, { target: { files: [file] } }); });
+    await screen.findByRole('status');
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    fireEvent.click(screen.getByRole('button', { name: '恢复已选备份' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('恢复备份时出现问题，原有学习进度未改变。');
+    expect(screen.getByRole('button', { name: '恢复已选备份' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: '恢复已选备份' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('备份已恢复'));
+    expect(screen.getByText('当前导出：第 9 周')).toBeInTheDocument();
   });
 });
