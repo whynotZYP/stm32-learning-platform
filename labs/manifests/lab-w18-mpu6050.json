@@ -1,0 +1,14 @@
+{
+  "schemaVersion":1,"id":"lab-w18-mpu6050","lessonId":"w18-mpu6050","title":"MPU6050 六轴读取与有界滤波",
+  "hardware":["STM32F103C8T6","ST-LINK","MPU6050 模块","面包板与杜邦线"],
+  "wiringChecklist":["断电后连接 PB6/SCL、PB7/SDA、3.3 V 和 GND，AD0 接地且所有设备共地。","上电前确认模块没有 5 V 上拉，移动时给导线留出余量。"],
+  "safety":["接线与更换模块前必须断电，只使用 3.3 V供电和上拉。","转动板卡时避免导线脱落短路，不把未标定结果用于安全控制。"],
+  "expectedObservations":["WHO_AM_I 为 0x68 后每 20 ms 读取 14 字节六轴帧。","静止时重力集中在一个轴，滤波值有界并逐步跟随姿态。"],
+  "faultTasks":["交换一轴高低字节或使用错误 scale factor，记录已知向量失败后恢复正确组合与量程。"],
+  "detectionChecks":[
+    {"mode":"automatic","action":"运行 signed vectors、缩放偏置与滤波测试","expectedEvidence":"边界向量和数值断言记录","limitation":"不含真实传感器噪声","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"连续读取身份、raw、scaled 与 filtered","expectedEvidence":"六轴随姿态变化快照","limitation":"变化不等于绝对精度","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"人工核对供电与静止重力方向","expectedEvidence":"接线照片和方向检查表","limitation":"精度仍需标定设备","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ],
+  "firmwareProject":"firmware/lessons/w18-mpu6050"
+}

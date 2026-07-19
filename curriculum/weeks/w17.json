@@ -1,0 +1,12 @@
+{
+  "schemaVersion":1,"id":"w17-i2c-implementations","week":17,"title":"软件 I2C 与硬件 I2C 对照","estimatedMinutes":480,
+  "sourceCourseIds":["33","34"],"prerequisiteTagIds":["gpio.output-mode","debug.observation"],"targetTagIds":["i2c.protocol"],
+  "objectives":["解释开漏总线只能拉低或释放的电气原因","用软件与硬件 I2C 读取同一寄存器并比较证据","区分超时、NACK 与总线卡死并执行九脉冲恢复"],
+  "conceptPath":"curriculum/weeks/w17.md","labIds":["lab-w17-i2c-compare"],"assessmentId":"assessment-w17",
+  "safety":["任何 I2C 接线变化前必须断电，上拉只能连接 3.3 V并保持共地。","制造卡线故障必须限时且受控，恢复后断电拆除短接。"],
+  "detectionChecks":[
+    {"mode":"automatic","action":"构建并运行开漏、超时和九脉冲恢复行为测试","expectedEvidence":"ELF 与主机行为测试记录","limitation":"不能证明真实上拉电压和波形","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"读取并比较软件与硬件 I2C 的同一寄存器","expectedEvidence":"两种实现的结果类型与字节值","limitation":"设备字节不能证明全部电气时序","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"用逻辑分析仪核对边沿、应答和恢复序列","expectedEvidence":"九脉冲加 STOP 的波形截图","limitation":"必须由真实仪器和接线确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

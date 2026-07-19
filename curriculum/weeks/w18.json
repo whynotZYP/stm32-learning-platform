@@ -1,0 +1,12 @@
+{
+  "schemaVersion":1,"id":"w18-mpu6050","week":18,"title":"硬件 I2C 读取 MPU6050","estimatedMinutes":480,
+  "sourceCourseIds":["35"],"prerequisiteTagIds":["i2c.protocol","debug.observation"],"targetTagIds":["i2c.mpu6050"],
+  "objectives":["依据制造商寄存器表唤醒并识别 MPU6050","正确组合六轴有符号高低字节并应用缩放与偏置","使用有界滤波和有超时的连续采样留下诚实证据"],
+  "conceptPath":"curriculum/weeks/w18.md","labIds":["lab-w18-mpu6050"],"assessmentId":"assessment-w18",
+  "safety":["改接 MPU6050 前必须断电，只使用 3.3 V并与开发板共地。","移动传感器时避免导线拉扯短路，不把示例输出当作标定精度。"],
+  "detectionChecks":[
+    {"mode":"automatic","action":"构建并执行有符号向量、缩放和滤波边界测试","expectedEvidence":"ELF 与主机数值测试记录","limitation":"不能证明真实传感器方向或精度","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备连续读取身份与六轴原始缩放数据","expectedEvidence":"身份和六轴随姿态变化记录","limitation":"变化不能证明绝对标定准确","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"人工核对供电接线与静止姿态方向","expectedEvidence":"接线照片和静止方向检查表","limitation":"高精度仍需专用标定设备","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

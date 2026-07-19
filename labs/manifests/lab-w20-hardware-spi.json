@@ -1,0 +1,14 @@
+{
+  "schemaVersion":1,"id":"lab-w20-hardware-spi","lessonId":"w20-hardware-spi","title":"SPI2 连续传输与耗时对照",
+  "hardware":["STM32F103C8T6","ST-LINK","W25Q64 模块","逻辑分析仪"],
+  "wiringChecklist":["断电后连接 PB12/CS、PB13/SCK、PB14/MISO、PB15/MOSI、3.3 V 和公共地。","上电前确认固定保留扇区可用于实验，并保存所需的外部数据备份。"],
+  "safety":["所有硬件 SPI 接线变化前必须断电，只允许 3.3 V电平。","禁止 bootloader、整片擦除和任意地址写入，恢复失败立即停止。"],
+  "expectedObservations":["SPI2 mode 0 读取 EF4017，分块 HAL 传输期间 CS 始终为低。","安全流程恢复完整 4 KiB，并记录可与软件 SPI 比较的 elapsed time。"],
+  "faultTasks":["改错 CPHA 或在 chunk 间抬高 CS，记录 ID/连续读取失败并恢复正确配置。"],
+  "detectionChecks":[
+    {"mode":"automatic","action":"构建并运行共享安全状态机行为测试","expectedEvidence":"ELF 与保存恢复边界记录","limitation":"模拟器不能证明板上速度","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备执行固定扇区测试并记录耗时","expectedEvidence":"ID、恢复回读与 elapsed time","limitation":"单板数据不代表普遍性能","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"人工确认 CS 连续波形和断电后回读","expectedEvidence":"分析仪截图与重启回读表","limitation":"依赖真实硬件和仪器","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ],
+  "firmwareProject":"firmware/lessons/w20-hardware-spi-w25q64"
+}

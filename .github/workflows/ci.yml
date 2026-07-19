@@ -31,6 +31,20 @@ jobs:
           HOST_CC: ${{ matrix.host_cc }}
         run: npx vitest run --config web/vitest.config.ts scripts/firmware-host/phase-04-host.test.ts
 
+  phase-5-host-c:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run --config web/vitest.config.ts scripts/content-validation/phase-05-content.test.ts
+
   web-and-content:
     runs-on: ubuntu-latest
     steps:

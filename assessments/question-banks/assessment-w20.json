@@ -1,0 +1,6 @@
+{"schemaVersion":1,"id":"assessment-w20","lessonId":"w20-hardware-spi","items":[
+  {"id":"w20-c","kind":"concept","prompt":"解释硬件 SPI2 与软件 SPI 的相同协议约束和不同传输成本。","tagIds":["spi.protocol","spi.w25q64"],"maxScore":25,"rubric":["mode0 与连续 CS 正确","比较变量受控"]},
+  {"id":"w20-k","kind":"configuration","prompt":"说明 SPI2 master、mode0、software NSS、分频和 PB12 手动 CS。","tagIds":["spi.protocol"],"maxScore":25,"rubric":["CubeMX 配置准确","HAL timeout 有界"]},
+  {"id":"w20-p","kind":"practical","prompt":"执行与软件 SPI 相同的固定扇区流程，验证 chunk 间 CS 连续并比较耗时。","tagIds":["spi.protocol","spi.w25q64","debug.observation"],"maxScore":35,"rubric":["恢复回读通过","CS 连续证据","耗时条件一致"]},
+  {"id":"w20-r","kind":"reflection","prompt":"说明耗时、构建、设备回读与人工波形各自能证明的范围。","tagIds":["debug.observation"],"maxScore":15,"rubric":["未声称未经验证的物理结果"]}
+]}

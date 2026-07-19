@@ -1,0 +1,6 @@
+{"schemaVersion":1,"id":"assessment-w17","lessonId":"w17-i2c-implementations","items":[
+  {"id":"w17-c","kind":"concept","prompt":"解释开漏的拉低与释放、START/STOP、ACK/NACK 和九脉冲恢复。","tagIds":["i2c.protocol"],"maxScore":25,"rubric":["电气与时序解释正确","错误类型边界清楚"]},
+  {"id":"w17-k","kind":"configuration","prompt":"说明 PB6/PB7 在软件 GPIO 与 I2C1 复用开漏之间如何安全切换。","tagIds":["i2c.protocol","gpio.output-mode"],"maxScore":25,"rubric":["模式切换完整","上拉和超时明确"]},
+  {"id":"w17-p","kind":"practical","prompt":"读取同一寄存器并注入 NACK、超时和卡线，展示恢复后明确重试证据。","tagIds":["i2c.protocol","debug.observation"],"maxScore":35,"rubric":["同寄存器对照","错误分类准确","恢复后重读不伪装成功"]},
+  {"id":"w17-r","kind":"reflection","prompt":"区分主机测试、设备读数和逻辑分析仪波形能分别证明什么。","tagIds":["debug.observation"],"maxScore":15,"rubric":["证据边界诚实完整"]}
+]}

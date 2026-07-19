@@ -1,0 +1,12 @@
+{
+  "schemaVersion":1,"id":"w20-hardware-spi","week":20,"title":"硬件 SPI 与连续传输","estimatedMinutes":480,
+  "sourceCourseIds":["39","40"],"prerequisiteTagIds":["spi.protocol","spi.w25q64"],"targetTagIds":["spi.protocol","spi.w25q64"],
+  "objectives":["配置 SPI2 mode 0 与手动 CS 连续传输","复用安全状态机执行固定扇区保存测试和恢复","在相同条件下比较软硬件 SPI 耗时与证据边界"],
+  "conceptPath":"curriculum/weeks/w20.md","labIds":["lab-w20-hardware-spi"],"assessmentId":"assessment-w20",
+  "safety":["硬件 SPI 接线变化前必须断电，W25Q64 仅用 3.3 V且全部共地。","不得使用整片擦除或保留区外地址，恢复回读失败必须停止实验。"],
+  "detectionChecks":[
+    {"mode":"automatic","action":"构建并检查 SPI2、连续 CS 和有界安全状态机","expectedEvidence":"ELF、配置和主机状态机记录","limitation":"不能证明板上真实 SPI 波形","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备运行固定扇区测试并比较软硬件耗时","expectedEvidence":"ID、恢复回读和两种耗时记录","limitation":"单次耗时不代表通用性能结论","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"人工检查 SPI2 mode0 波形和断电后数据","expectedEvidence":"连续 CS 波形与重上电回读记录","limitation":"必须使用真实器件与仪器完成","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

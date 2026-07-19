@@ -1,0 +1,14 @@
+{
+  "schemaVersion":1,"id":"lab-w19-software-spi","lessonId":"w19-spi-basics","title":"软件 SPI 安全访问 W25Q64",
+  "hardware":["STM32F103C8T6","ST-LINK","W25Q64 模块","逻辑分析仪"],
+  "wiringChecklist":["断电后连接 PB12/CS、PB13/SCK、PB14/MISO、PB15/MOSI、3.3 V 和 GND。","上电前确认 W25Q64 只接 3.3 V且共地，并确认固定测试扇区没有唯一重要数据。"],
+  "safety":["任何 Flash 接线改变前必须断电，严禁 5 V供电或信号。","写入只允许 0x007FF000 固定 4 KiB 保留扇区，禁止整片擦除。"],
+  "expectedObservations":["mode 0 读取 JEDEC ID 为 EF4017，CS 覆盖整个命令地址数据。","测试页实际改变后完整恢复 4 KiB，恢复回读一致才返回成功。"],
+  "faultTasks":["注入错误边沿、CS 中断、缺失 WREN、WIP 超时和恢复损坏，确认各自失败且地址不越界。"],
+  "detectionChecks":[
+    {"mode":"automatic","action":"运行 mode0 与 Flash 安全状态机测试","expectedEvidence":"fake Flash 变更恢复和边界记录","limitation":"不代表实物擦写通过","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"读取 ID 并明确请求固定扇区测试","expectedEvidence":"EF4017、状态、恢复和耗时","limitation":"设备状态不能证明波形","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"人工检查 mode0 与连续 CS 波形","expectedEvidence":"四线波形和地址清单","limitation":"依赖真实器件仪器","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ],
+  "firmwareProject":"firmware/lessons/w19-software-spi-w25q64"
+}

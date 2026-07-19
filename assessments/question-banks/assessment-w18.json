@@ -1,0 +1,6 @@
+{"schemaVersion":1,"id":"assessment-w18","lessonId":"w18-mpu6050","items":[
+  {"id":"w18-c","kind":"concept","prompt":"解释高低字节无符号组合后转 int16_t、二补码、scale 与 bias。","tagIds":["i2c.mpu6050"],"maxScore":25,"rubric":["符号转换正确","量程系数正确"]},
+  {"id":"w18-k","kind":"configuration","prompt":"说明 I2C1、唤醒、身份检查、14 字节 burst 和固定 HAL timeout。","tagIds":["i2c.protocol","i2c.mpu6050"],"maxScore":25,"rubric":["寄存器与配置对应","等待有界"]},
+  {"id":"w18-p","kind":"practical","prompt":"展示六轴 raw、缩放、偏置和有界滤波，并修复字节交换或 scale 故障。","tagIds":["i2c.mpu6050","debug.observation"],"maxScore":35,"rubric":["已知向量通过","六轴数据完整","故障修复有证据"]},
+  {"id":"w18-r","kind":"reflection","prompt":"记录零偏假设、滤波局限和仍待真实标定验证的结论。","tagIds":["debug.observation"],"maxScore":15,"rubric":["不夸大精度或实机结果"]}
+]}

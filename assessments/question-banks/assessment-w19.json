@@ -1,0 +1,6 @@
+{"schemaVersion":1,"id":"assessment-w19","lessonId":"w19-spi-basics","items":[
+  {"id":"w19-c","kind":"concept","prompt":"解释 SPI mode 0、连续 CS、WEL/WIP、页编程与扇区擦除。","tagIds":["spi.protocol","spi.w25q64"],"maxScore":25,"rubric":["时序与状态正确","边界解释完整"]},
+  {"id":"w19-k","kind":"configuration","prompt":"说明 PB12–PB15 软件 SPI 配置和固定保留扇区地址策略。","tagIds":["spi.protocol","spi.w25q64"],"maxScore":25,"rubric":["引脚模式正确","不存在任意地址入口"]},
+  {"id":"w19-p","kind":"practical","prompt":"读取 EF4017，完成保存、测试写、完整恢复与回读，并注入 WEL/WIP 故障。","tagIds":["spi.w25q64","debug.observation"],"maxScore":35,"rubric":["ID 正确","实际变更后恢复","恢复失败即失败","超时有界"]},
+  {"id":"w19-r","kind":"reflection","prompt":"记录 Flash 数据风险、自动证据限制与待实机验证项目。","tagIds":["debug.observation"],"maxScore":15,"rubric":["风险与证据边界明确"]}
+]}

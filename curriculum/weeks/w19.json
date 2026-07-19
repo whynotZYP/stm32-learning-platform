@@ -1,0 +1,12 @@
+{
+  "schemaVersion":1,"id":"w19-spi-basics","week":19,"title":"SPI、W25Q64 与软件 SPI","estimatedMinutes":480,
+  "sourceCourseIds":["36","37","38"],"prerequisiteTagIds":["foundation.binary","c.memory"],"targetTagIds":["spi.protocol","spi.w25q64"],
+  "objectives":["用 GPIO 实现 mode 0 连续 CS 软件 SPI transaction","读取并核对 W25Q64 JEDEC ID 与 WEL WIP 状态","只在固定保留扇区完成保存测试恢复和回读"],
+  "conceptPath":"curriculum/weeks/w19.md","labIds":["lab-w19-software-spi"],"assessmentId":"assessment-w19",
+  "safety":["连接或移动 W25Q64 导线前必须断电，只能使用 3.3 V并共地。","写测试只允许固定保留扇区，开始前确认其中没有唯一重要数据。"],
+  "detectionChecks":[
+    {"mode":"automatic","action":"构建并执行 mode0、边界和保存恢复状态机测试","expectedEvidence":"ELF 与实际 fake Flash 变更恢复记录","limitation":"模拟存储不能证明实物擦写成功","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"设备读取 JEDEC ID 并执行明确请求的保留区测试","expectedEvidence":"EF4017、状态、回读和耗时记录","limitation":"设备值不能证明模拟波形质量","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"用逻辑分析仪检查 mode0 和完整 CS 区间","expectedEvidence":"命令地址数据连续波形截图","limitation":"必须由真实仪器和器件确认","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ]
+}

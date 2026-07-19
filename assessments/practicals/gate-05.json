@@ -1,0 +1,9 @@
+{
+  "schemaVersion":1,"id":"gate-05","phase":5,"title":"阶段五：I2C 传感器与 SPI Flash 安全驱动","lessonIds":["w17-i2c-implementations","w18-mpu6050","w19-spi-basics","w20-hardware-spi"],"requiredTagIds":["i2c.protocol","i2c.mpu6050","spi.protocol","spi.w25q64"],
+  "items":[
+    {"id":"g5-c","kind":"concept","prompt":"从制造商 datasheet 选择一个新传感器或 Flash 寄存器，解释 I2C/SPI 时序、符号或状态位。","tagIds":["i2c.protocol","i2c.mpu6050","spi.protocol","spi.w25q64"],"maxScore":25,"rubric":["引用一手资料","时序与位含义正确"]},
+    {"id":"g5-k","kind":"configuration","prompt":"说明开漏上拉、I2C1 或 SPI2 mode0、连续 CS、timeout 和固定保留区的配置理由。","tagIds":["i2c.protocol","spi.protocol","spi.w25q64"],"maxScore":25,"rubric":["配置可追溯到 datasheet","等待与写入边界有界"]},
+    {"id":"g5-p","kind":"practical","prompt":"读取新寄存器，恢复一次 stuck bus 或 SPI mode 故障，并证明 Flash 只修改 0x007FF000 保留扇区且完整恢复 4 KiB。","tagIds":["i2c.mpu6050","spi.w25q64","debug.observation"],"maxScore":35,"rubric":["新寄存器读取证据","故障恢复有效","地址日志不越界","恢复回读失败即失败"]},
+    {"id":"g5-r","kind":"reflection","prompt":"提交 Markdown 记录，分开列出主机测试、ELF、设备值、仪器波形和待实机验证内容。","tagIds":["debug.observation"],"maxScore":15,"rubric":["证据类型分离","安全与数据风险完整"]}
+  ]
+}

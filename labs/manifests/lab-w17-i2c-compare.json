@@ -1,0 +1,14 @@
+{
+  "schemaVersion":1,"id":"lab-w17-i2c-compare","lessonId":"w17-i2c-implementations","title":"软件与硬件 I2C 同寄存器对照",
+  "hardware":["STM32F103C8T6","ST-LINK","MPU6050 模块","3.3 V I2C 上拉","逻辑分析仪"],
+  "wiringChecklist":["断电后连接 PB6/SCL、PB7/SDA、3.3 V 与 GND，确认上拉接 3.3 V并共地。","上电前检查 SDA/SCL 无短路，故障短接只在限时受控步骤中使用。"],
+  "safety":["每次改变 I2C 接线前必须断电，禁止把总线或模块接到 5 V。","卡线注入结束立即断电恢复正常接线，避免持续短路。"],
+  "expectedObservations":["软件和硬件实现读取同一 0x75 寄存器，正常预期均为 0x68。","NACK、TIMEOUT、BUS_STUCK 分开报告，恢复波形为九个脉冲加 STOP。"],
+  "faultTasks":["断开设备制造 NACK，再分别保持 SCL/SDA 低并记录有界超时、九脉冲恢复、重试结果。"],
+  "detectionChecks":[
+    {"mode":"automatic","action":"运行生产位操作和恢复主机行为测试","expectedEvidence":"低拉释放计数与错误类型记录","limitation":"不能证明真实线电平","applicable":true,"evidenceSource":"simulator","physicalHardware":false},
+    {"mode":"semi-automatic","action":"读取软件和硬件 I2C 结果结构","expectedEvidence":"同寄存器值和恢复重试字段","limitation":"读数不能替代波形","applicable":true,"evidenceSource":"device","physicalHardware":true},
+    {"mode":"manual","action":"人工检查上拉电压和九脉冲 STOP 波形","expectedEvidence":"仪表电压与分析仪截图","limitation":"依赖真实仪器校准","applicable":true,"evidenceSource":"manual","physicalHardware":true}
+  ],
+  "firmwareProject":"firmware/lessons/w17-i2c-compare"
+}
